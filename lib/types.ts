@@ -25,7 +25,10 @@ export type SlideType =
   | 'sales'
   | 'info_card'
   | 'social_proof'
-  | 'profile';
+  | 'profile'
+  | 'checkpoint'
+  | 'plan_preview'
+  | 'weekly_progress';
 
 export interface SlideOption {
   id: string;

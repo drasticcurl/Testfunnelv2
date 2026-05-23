@@ -3,22 +3,29 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const FACTS = [
-  '1 de cada 3 argentinos duerme mal de forma crónica',
-  'El insomnio acelera el envejecimiento celular 3x',
-  'Dormir menos de 6 horas aumenta el riesgo cardíaco un 48%',
-  'Tu cerebro se limpia de toxinas solo durante el sueño profundo',
-  'La falta de sueño afecta tu memoria a corto plazo en un 40%',
+const STEPS = [
+  { text: 'Analizando tu patrón de sueño...', icon: '🔬' },
+  { text: 'Identificando tu tipo de insomnio...', icon: '🧠' },
+  { text: 'Calculando severidad...', icon: '📊' },
+  { text: 'Generando tu protocolo personalizado...', icon: '📋' },
+  { text: '¡Listo! Preparando tu resultado...', icon: '✨' },
+];
+
+const TESTIMONIALS = [
+  '"En la noche 3 ya dormía de corrido" — Martín, 45',
+  '"No puedo creer que algo tan simple funcione" — Carolina, 38',
+  '"Probé de todo, esto fue lo primero que funcionó" — Anabel, 52',
 ];
 
 interface SlideLoadingProps {
   onComplete: () => void;
-  duration?: number; // ms
+  duration?: number;
 }
 
 export default function SlideLoading({ onComplete, duration = 8000 }: SlideLoadingProps) {
   const [progress, setProgress] = useState(0);
-  const [factIndex, setFactIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
 
   useEffect(() => {
     const startTime = Date.now();
@@ -26,9 +33,14 @@ export default function SlideLoading({ onComplete, duration = 8000 }: SlideLoadi
       const elapsed = Date.now() - startTime;
       const p = Math.min(100, (elapsed / duration) * 100);
       setProgress(p);
+
+      // Update step based on progress
+      const newStep = Math.min(STEPS.length - 1, Math.floor((p / 100) * STEPS.length));
+      setStepIndex(newStep);
+
       if (p >= 100) {
         clearInterval(interval);
-        setTimeout(onComplete, 300);
+        setTimeout(onComplete, 400);
       }
     }, 50);
 
@@ -37,8 +49,8 @@ export default function SlideLoading({ onComplete, duration = 8000 }: SlideLoadi
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setFactIndex((prev) => (prev + 1) % FACTS.length);
-    }, 2500);
+      setTestimonialIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -48,39 +60,57 @@ export default function SlideLoading({ onComplete, duration = 8000 }: SlideLoadi
       animate={{ opacity: 1 }}
       className="text-center"
     >
-      <div className="mb-8">
-        <div className="text-5xl mb-4">🔬</div>
-        <h2 className="font-serif text-2xl text-white mb-2">Analizando tu perfil de sueño...</h2>
-        <p className="text-gray-400 text-sm">Estamos procesando tus respuestas</p>
-      </div>
+      {/* Animated icon */}
+      <motion.div
+        animate={{ rotate: [0, 5, -5, 0] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        className="text-5xl mb-6"
+      >
+        🌙
+      </motion.div>
+
+      <h2 className="font-serif text-xl text-white mb-2">
+        Creando tu protocolo...
+      </h2>
 
       {/* Progress bar */}
-      <div className="w-full h-3 bg-night-700 rounded-full overflow-hidden mb-8">
+      <div className="w-full h-2.5 bg-night-700 rounded-full overflow-hidden mb-6">
         <motion.div
           className="h-full bg-gradient-to-r from-accent to-accent-hover rounded-full"
           style={{ width: `${progress}%` }}
-          transition={{ duration: 0.1 }}
         />
       </div>
 
-      {/* Rotating facts */}
-      <div className="h-16 flex items-center justify-center">
+      {/* Current step */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={stepIndex}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center justify-center gap-2 mb-8"
+        >
+          <span className="text-lg">{STEPS[stepIndex].icon}</span>
+          <span className="text-gray-300 text-sm">{STEPS[stepIndex].text}</span>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Rotating testimonials */}
+      <div className="border-t border-night-700 pt-5">
         <AnimatePresence mode="wait">
           <motion.p
-            key={factIndex}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="text-gray-300 text-sm px-4"
+            key={testimonialIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-gray-400 text-xs italic"
           >
-            💡 {FACTS[factIndex]}
+            {TESTIMONIALS[testimonialIndex]}
           </motion.p>
         </AnimatePresence>
       </div>
-
-      {/* Percentage */}
-      <p className="text-accent font-mono text-lg mt-4">{Math.round(progress)}%</p>
     </motion.div>
   );
 }
