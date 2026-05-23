@@ -4,8 +4,8 @@ import { useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useQuizStore } from '@/lib/quiz/store';
 import { slidesCorto } from '@/lib/quiz/slides';
-import { generateProfileBars } from '@/lib/quiz/calculate-result';
 import { Gender } from '@/lib/types';
+import { captureUTMs, trackPixelEvent, trackServerEvent } from '@/lib/tracking';
 import QuizLayout from './QuizLayout';
 import SlideGender from './SlideGender';
 import SlideOption from './SlideOption';
@@ -18,7 +18,6 @@ import SlideSalesPage from './SlideSalesPage';
 export default function QuizContainer() {
   const {
     currentSlideIndex,
-    answers,
     genero,
     result,
     setSlides,
@@ -26,13 +25,15 @@ export default function QuizContainer() {
     setGenero,
     setEmail,
     nextSlide,
-    goToSlide,
     computeResult,
     getVisibleSlides,
   } = useQuizStore();
 
   useEffect(() => {
     setSlides(slidesCorto);
+    captureUTMs();
+    trackPixelEvent('QuizStart');
+    trackServerEvent('QuizStart');
   }, [setSlides]);
 
   const visibleSlides = getVisibleSlides();
@@ -40,6 +41,8 @@ export default function QuizContainer() {
 
   const handleLoadingComplete = useCallback(() => {
     computeResult();
+    trackPixelEvent('QuizComplete');
+    trackServerEvent('QuizComplete');
     nextSlide();
   }, [computeResult, nextSlide]);
 

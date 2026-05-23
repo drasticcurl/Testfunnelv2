@@ -148,6 +148,13 @@ interface SlideSalesPageProps {
 }
 
 export default function SlideSalesPage({ result }: SlideSalesPageProps) {
+  // Fire ViewContent event when sales page loads
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).fbq) {
+      (window as unknown as { fbq: (...args: unknown[]) => void }).fbq('track', 'ViewContent');
+    }
+  }, []);
+
   const handleCheckout = useCallback(() => {
     // Fire Meta Pixel event
     if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).fbq) {

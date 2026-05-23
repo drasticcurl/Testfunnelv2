@@ -6,6 +6,7 @@ import { useQuizStore } from '@/lib/quiz/store';
 import { slidesLargo } from '@/lib/quiz/slides-v2';
 import { generateProfileBars } from '@/lib/quiz/calculate-result';
 import { Gender } from '@/lib/types';
+import { captureUTMs, trackPixelEvent, trackServerEvent } from '@/lib/tracking';
 import QuizLayout from './QuizLayout';
 import SlideGender from './SlideGender';
 import SlideOption from './SlideOption';
@@ -38,6 +39,9 @@ export default function QuizContainerV2() {
 
   useEffect(() => {
     setSlides(slidesLargo);
+    captureUTMs();
+    trackPixelEvent('QuizStart');
+    trackServerEvent('QuizStart');
   }, [setSlides]);
 
   const visibleSlides = getVisibleSlides();
@@ -45,6 +49,8 @@ export default function QuizContainerV2() {
 
   const handleLoadingComplete = useCallback(() => {
     computeResult();
+    trackPixelEvent('QuizComplete');
+    trackServerEvent('QuizComplete');
     nextSlide();
   }, [computeResult, nextSlide]);
 
