@@ -18,6 +18,8 @@ import SlideResult from './SlideResult';
 import SlideInfoCard from './SlideInfoCard';
 import SlideSocialProof from './SlideSocialProof';
 import SlideProfile from './SlideProfile';
+import SlideCheckpoint from './SlideCheckpoint';
+import SlidePlanPreview from './SlidePlanPreview';
 import SlideSalesPage from './SlideSalesPage';
 
 export default function QuizContainerV2() {
@@ -57,11 +59,11 @@ export default function QuizContainerV2() {
   if (!currentSlide) return null;
 
   const interactiveSlides = visibleSlides.filter(
-    (s) => !['loading', 'result', 'sales', 'profile'].includes(s.type)
+    (s) => !['loading', 'result', 'sales', 'profile', 'plan_preview'].includes(s.type)
   );
   const progressTotal = interactiveSlides.length;
   const progressCurrent = Math.min(currentSlideIndex + 1, progressTotal);
-  const showProgress = !['loading', 'result', 'sales', 'profile'].includes(currentSlide.type);
+  const showProgress = !['loading', 'result', 'sales', 'profile', 'plan_preview'].includes(currentSlide.type);
 
   const renderSlide = () => {
     switch (currentSlide.type) {
@@ -120,13 +122,16 @@ export default function QuizContainerV2() {
         return <SlideInfoCard slide={currentSlide} onContinue={nextSlide} />;
       case 'social_proof':
         return <SlideSocialProof slide={currentSlide} onContinue={nextSlide} />;
+      case 'checkpoint':
+        return <SlideCheckpoint slide={currentSlide} onContinue={nextSlide} />;
       case 'loading':
         return <SlideLoading onComplete={handleLoadingComplete} />;
       case 'profile':
-        const bars = generateProfileBars(answers);
-        return <SlideProfile bars={bars} nombre={nombre} onContinue={nextSlide} />;
+        return <SlideProfile bars={generateProfileBars(answers)} nombre={nombre} onContinue={nextSlide} />;
       case 'result':
         return result ? <SlideResult result={result} onContinue={nextSlide} /> : null;
+      case 'plan_preview':
+        return result ? <SlidePlanPreview result={result} onContinue={nextSlide} /> : null;
       case 'sales':
         return result ? <SlideSalesPage result={result} /> : null;
       default:
