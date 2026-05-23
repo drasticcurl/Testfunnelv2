@@ -2,202 +2,181 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import SliderField from '@/components/pwa/diario/SliderField';
-import SymptomChips from '@/components/pwa/diario/SymptomChips';
-import {
-  SymptomLog,
-  saveLogToStorage,
-  BOWEL_OPTIONS,
-  ADHERENCE_OPTIONS,
-} from '@/lib/pwa/diary-helpers';
+import Link from 'next/link';
 
-export default function NuevoRegistroPage() {
+export default function NuevoDiarioPage() {
   const router = useRouter();
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = new Date().toISOString().split('T')[0];
 
-  const [bloatingAm, setBloatingAm] = useState(5);
-  const [bloatingPm, setBloatingPm] = useState(5);
-  const [energy, setEnergy] = useState(5);
-  const [stress, setStress] = useState(5);
-  const [sleepQuality, setSleepQuality] = useState(5);
-  const [bowelMovement, setBowelMovement] = useState('normal');
-  const [symptoms, setSymptoms] = useState<string[]>([]);
-  const [planAdherence, setPlanAdherence] = useState('100');
-  const [waterGlasses, setWaterGlasses] = useState(6);
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    date: today,
+    hora_acostar: '23:00',
+    hora_dormir: '23:30',
+    despertares: 0,
+    calidad: 5,
+    energia_dia: 5,
+    notas: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSave = () => {
-    setSaving(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    const log: SymptomLog = {
-      id: `log-${today}`,
-      date: today,
-      bloating_am: bloatingAm,
-      bloating_pm: bloatingPm,
-      energy,
-      stress,
-      sleep_quality: sleepQuality,
-      bowel_movement: bowelMovement,
-      symptoms,
-      notes,
-      water_glasses: waterGlasses,
-      plan_adherence: planAdherence,
-      created_at: new Date().toISOString(),
-    };
+    try {
+      const res = await fetch('/api/pwa/diary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
 
-    // In test mode: save to localStorage
-    saveLogToStorage(log);
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Error al guardar');
+        return;
+      }
 
-    setTimeout(() => {
       router.push('/pwa/diario');
-    }, 300);
+    } catch {
+      setError('Error de conexión');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6 pb-8"
-    >
-      {/* Header */}
+    <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-2xl text-charcoal">¿Cómo te sentiste hoy?</h1>
-        <p className="text-sm text-charcoal/60 mt-1">
-          {format(new Date(), "d 'de' MMMM")} — 1 registro por día
-        </p>
+        <Link href="/pwa/diario" className="text-pwa-accent text-sm mb-3 inline-block">
+          ← Volver al diario
+        </Link>
+        <h1 className="font-serif text-2xl text-pwa-accent">Registrar Sueño</h1>
+        <p className="text-pwa-text-secondary text-sm mt-1">¿Cómo dormiste?</p>
       </div>
 
-      {/* Bloating AM/PM */}
-      <section className="bg-white rounded-lg p-4 shadow-sm border border-sage-soft/50 space-y-5">
-        <h2 className="text-base font-medium text-charcoal">Hinchazón</h2>
-        <SliderField
-          label="🌅 Al levantarte (AM)"
-          value={bloatingAm}
-          onChange={setBloatingAm}
-          lowLabel="Nada"
-          highLabel="Máxima"
-        />
-        <SliderField
-          label="🌙 Al acostarte (PM)"
-          value={bloatingPm}
-          onChange={setBloatingPm}
-          lowLabel="Nada"
-          highLabel="Máxima"
-        />
-      </section>
-
-      {/* Energy, Stress, Sleep */}
-      <section className="bg-white rounded-lg p-4 shadow-sm border border-sage-soft/50 space-y-5">
-        <h2 className="text-base font-medium text-charcoal">Bienestar general</h2>
-        <SliderField
-          label="⚡ Energía"
-          value={energy}
-          onChange={setEnergy}
-          lowLabel="Agotada"
-          highLabel="Plena"
-        />
-        <SliderField
-          label="🧠 Estrés"
-          value={stress}
-          onChange={setStress}
-          lowLabel="Tranquila"
-          highLabel="Muy estresada"
-        />
-        <SliderField
-          label="😴 Calidad del sueño"
-          value={sleepQuality}
-          onChange={setSleepQuality}
-          lowLabel="Pésimo"
-          highLabel="Excelente"
-        />
-      </section>
-
-      {/* Bowel movement */}
-      <section className="bg-white rounded-lg p-4 shadow-sm border border-sage-soft/50 space-y-3">
-        <h2 className="text-base font-medium text-charcoal">Movimiento intestinal</h2>
-        <select
-          value={bowelMovement}
-          onChange={(e) => setBowelMovement(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-lg border border-sage-soft bg-cream text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-sage/30"
-        >
-          {BOWEL_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      {/* Symptom chips */}
-      <section className="bg-white rounded-lg p-4 shadow-sm border border-sage-soft/50">
-        <SymptomChips selected={symptoms} onChange={setSymptoms} />
-      </section>
-
-      {/* Plan adherence */}
-      <section className="bg-white rounded-lg p-4 shadow-sm border border-sage-soft/50 space-y-3">
-        <h2 className="text-base font-medium text-charcoal">¿Cumpliste el plan?</h2>
-        <select
-          value={planAdherence}
-          onChange={(e) => setPlanAdherence(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-lg border border-sage-soft bg-cream text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-sage/30"
-        >
-          {ADHERENCE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      {/* Water counter */}
-      <section className="bg-white rounded-lg p-4 shadow-sm border border-sage-soft/50 space-y-3">
-        <h2 className="text-base font-medium text-charcoal">💧 Vasos de agua</h2>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => setWaterGlasses(Math.max(0, waterGlasses - 1))}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-sage-soft text-charcoal font-bold text-lg active:scale-90 transition-transform"
-          >
-            −
-          </button>
-          <span className="text-2xl font-semibold text-sage w-8 text-center">
-            {waterGlasses}
-          </span>
-          <button
-            type="button"
-            onClick={() => setWaterGlasses(Math.min(15, waterGlasses + 1))}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-sage-soft text-charcoal font-bold text-lg active:scale-90 transition-transform"
-          >
-            +
-          </button>
-          <span className="text-xs text-charcoal/50">vasos (250ml)</span>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Date */}
+        <div>
+          <label className="block text-sm font-medium text-pwa-text mb-1">Fecha</label>
+          <input
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            max={today}
+            className="input-pwa"
+          />
         </div>
-      </section>
 
-      {/* Notes */}
-      <section className="bg-white rounded-lg p-4 shadow-sm border border-sage-soft/50 space-y-3">
-        <h2 className="text-base font-medium text-charcoal">📝 Notas</h2>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="¿Algo que quieras anotar sobre hoy?"
-          rows={3}
-          className="w-full px-3 py-2.5 rounded-lg border border-sage-soft bg-cream text-sm text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-sage/30 resize-none"
-        />
-      </section>
+        {/* Bed time */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-pwa-text mb-1">Me acosté</label>
+            <input
+              type="time"
+              value={form.hora_acostar}
+              onChange={(e) => setForm({ ...form, hora_acostar: e.target.value })}
+              className="input-pwa"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-pwa-text mb-1">Me dormí</label>
+            <input
+              type="time"
+              value={form.hora_dormir}
+              onChange={(e) => setForm({ ...form, hora_dormir: e.target.value })}
+              className="input-pwa"
+            />
+          </div>
+        </div>
 
-      {/* Save Button */}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full py-3.5 rounded-full bg-sage text-white font-semibold text-base shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-60"
-      >
-        {saving ? 'Guardando...' : 'Guardar registro'}
-      </button>
-    </motion.div>
+        {/* Awakenings */}
+        <div>
+          <label className="block text-sm font-medium text-pwa-text mb-1">
+            Despertares nocturnos
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, despertares: Math.max(0, form.despertares - 1) })}
+              className="w-10 h-10 rounded-lg border border-pwa-border flex items-center justify-center text-lg"
+            >
+              −
+            </button>
+            <span className="text-2xl font-bold text-pwa-text w-8 text-center">
+              {form.despertares}
+            </span>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, despertares: Math.min(10, form.despertares + 1) })}
+              className="w-10 h-10 rounded-lg border border-pwa-border flex items-center justify-center text-lg"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Quality slider */}
+        <div>
+          <label className="block text-sm font-medium text-pwa-text mb-1">
+            Calidad al despertar: <span className="text-pwa-accent">{form.calidad}/10</span>
+          </label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={form.calidad}
+            onChange={(e) => setForm({ ...form, calidad: parseInt(e.target.value) })}
+            className="w-full accent-pwa-accent"
+          />
+          <div className="flex justify-between text-xs text-pwa-text-secondary">
+            <span>Pésimo</span>
+            <span>Excelente</span>
+          </div>
+        </div>
+
+        {/* Energy slider */}
+        <div>
+          <label className="block text-sm font-medium text-pwa-text mb-1">
+            Energía al día siguiente: <span className="text-pwa-highlight">{form.energia_dia}/10</span>
+          </label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={form.energia_dia}
+            onChange={(e) => setForm({ ...form, energia_dia: parseInt(e.target.value) })}
+            className="w-full accent-pwa-highlight"
+          />
+          <div className="flex justify-between text-xs text-pwa-text-secondary">
+            <span>Sin energía</span>
+            <span>Mucha energía</span>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="block text-sm font-medium text-pwa-text mb-1">Notas (opcional)</label>
+          <textarea
+            value={form.notas}
+            onChange={(e) => setForm({ ...form, notas: e.target.value })}
+            placeholder="¿Algo que quieras anotar? Sueños, sensaciones..."
+            rows={3}
+            className="input-pwa resize-none"
+          />
+        </div>
+
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-pwa-accent text-white font-semibold rounded-lg py-3 px-6 transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+        >
+          {loading ? 'Guardando...' : 'Guardar registro'}
+        </button>
+      </form>
+    </div>
   );
 }

@@ -1,33 +1,24 @@
-/**
- * GET /api/pwa/me
- *
- * Devuelve el usuario logueado a partir de la cookie de sesión firmada.
- *
- * Respuestas:
- *   200 { authenticated: true,  email, nombre, testMode } — sesión válida
- *   200 { authenticated: false } — sin sesión / sesión expirada / inválida
- *
- * Devolvemos siempre 200 (no 401) porque consumirlo desde un client hook
- * con onError + useSWR sería ruidoso. El cliente discrimina por la flag.
- */
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
 
-import { NextResponse } from 'next/server';
-import { readSession } from '@/lib/pwa/session';
-import { isTestMode } from '@/lib/pwa/test-mode';
-import { deriveNameFromEmail } from '@/lib/pwa/get-user-name';
+export async function GET(request: NextRequest) {
+  const session = request.cookies.get('dormibien_session');
 
-export const runtime = 'nodejs';
-
-export async function GET() {
-  const session = await readSession();
-  if (!session) {
-    return NextResponse.json({ authenticated: false });
+  if (!session || !session.value) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  return NextResponse.json({
-    authenticated: true,
-    email: session.email,
-    nombre: deriveNameFromEmail(session.email),
-    testMode: isTestMode(),
-  });
+  const email = session.value;
+
+  const { data: user, error } = await supabaseAdmin
+    .from('sleep_users')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (error || !user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  return NextResponse.json({ user });
 }

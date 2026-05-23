@@ -1,19 +1,15 @@
-/**
- * POST /api/pwa/auth/logout
- *
- * Borra la cookie de sesión PWA. Devuelve 200 siempre.
- */
-
 import { NextResponse } from 'next/server';
-import { SESSION_COOKIE_ATTRS } from '@/lib/pwa/session';
-
-export const runtime = 'nodejs';
 
 export async function POST() {
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE_ATTRS.name, '', {
-    ...SESSION_COOKIE_ATTRS,
+  const response = NextResponse.json({ success: true });
+
+  response.cookies.set('dormibien_session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
     maxAge: 0,
   });
-  return res;
+
+  return response;
 }
