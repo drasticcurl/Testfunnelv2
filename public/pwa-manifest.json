@@ -1,0 +1,32 @@
+{
+  "name": "Protocolo Anti-Hinchazón",
+  "short_name": "Anti-Hinchazón",
+  "description": "Tu plan personalizado para desinflamar tu abdomen",
+  "start_url": "/pwa/dashboard",
+  "scope": "/pwa",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF7F2",
+  "theme_color": "#7A9B7E",
+  "categories": ["health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
