@@ -1,88 +1,34 @@
-# _OVERVIEW.md — Mapa general del proyecto
+# DormíBien — Overview
 
-> **Compartido — todos los agentes deben leerlo.**
+## Qué es
+PWA interactiva que guía al usuario noche a noche para resolver su insomnio mediante un protocolo de 7 noches personalizado.
 
-## Qué construimos
+## Flujo completo
+1. Usuario llega vía Google Ads → /quiz (corto, 10-12 slides) o Facebook Ads → /quiz-v2 (largo, 18-22 slides)
+2. Quiz determina perfil de insomnio (4 tipos) + severidad
+3. Sales page embebida como último slide del quiz (NO redirige)
+4. Compra en Hotmart → webhook crea acceso en Supabase
+5. Usuario accede a la PWA con su email → protocolo de 7 noches personalizado
 
-Un quiz funnel low-ticket para venta de un infoproducto digital ("Protocolo Anti-Hinchazón") al mercado hispanohablante (Argentina como base, foco de venta en LATAM y España).
+## Producto
+- **Nombre:** DormíBien
+- **Precio front-end:** $4.990 ARS (presentado como "$713/noche")
+- **Precio tachado:** $14.990 ARS
+- **Upsell (Hotmart, no en nuestro código):** $9.990 ARS
 
-## Mapa del funnel (end-to-end)
+## 4 Perfiles de Insomnio
+| # | Nombre | Descripción |
+|---|--------|-------------|
+| 1 | El Mente Acelerada | No puede dormirse, la cabeza no para |
+| 2 | El Despertador | Se duerme pero se despierta a las 2-4am |
+| 3 | El Zombi | Duerme las horas pero se levanta destruido |
+| 4 | El Irregular | Sin horario, ritmo circadiano roto |
 
-```
-[META AD]                                  ← agentes 08, 09, 10
-   ↓
-[NUESTRO CÓDIGO — Next.js en Vercel]
-   /              ← LANDING PRE-QUIZ        ← agente 01
-   /quiz          ← QUIZ DE 14 SLIDES        ← agente 02
-   /resultados    ← CARTA DE VENTAS DINÁMICA ← agente 03
-   /api/*         ← BACKEND + TRACKING       ← agente 04
-   ↓
-[Click en CTA "Quiero mi protocolo $14.90"]
-   ↓
-[HOTMART — fuera de nuestro código]        ← agente 11 lo configura
-   Checkout
-   Upsell 1 ($9.90)
-   Thank You + Email entrega
-   ↓
-[EMAIL SEQUENCE]                           ← agente 12
-```
+## Target
+Hombres y mujeres 25-55 que duermen mal (Argentina)
 
-## Productos y precios
-
-| Pieza | Precio USD | Tipo | Quién lo crea |
-|---|---|---|---|
-| Protocolo Anti-Hinchazón 7 Días (PWA interactiva) | $14.90 | Front end | Agente 05 |
-| Programa 30 Días Completo | $9.90 | Upsell 1 | Agente 07 |
-
-**AOV proyectado:** ~$18.86 USD por comprador.
-
-## Alcance del código
-
-**SÍ codeamos:**
-- `/` (landing pre-quiz)
-- `/quiz` (las 14 slides)
-- `/resultados` (carta de ventas)
-- `/api/submit-quiz` (recepción del email + forward a webhook)
-- `/api/track` (Conversions API de Meta server-side)
-- `/api/hotmart-webhook` (recibe postback de Hotmart cuando hay venta)
-
-**NO codeamos:**
-- Páginas de upsell (las hace Hotmart con su editor)
-- Página de checkout (la hace Hotmart)
-- Página de thank you (la hace Hotmart)
-- Área de miembros / entrega (Hotmart maneja la descarga del PDF)
-
-Esto es importante: nuestro código termina cuando el usuario hace click en "Quiero mi protocolo por $14.90 →". A partir de ahí, Hotmart toma el control.
-
-## Decisiones técnicas tomadas
-
-1. **Next.js 14+ App Router + TypeScript + Tailwind + Framer Motion + Zustand** para el frontend
-2. **Vercel** para deploy (free tier alcanza el día 1)
-3. **Hotmart** para checkout, upsells y entrega (mejor opción para Argentina/LATAM)
-4. **Systeme.io** para email automation (free tier hasta 2.000 contactos)
-5. **ElevenLabs + CapCut + Pexels** para creativos sin cámara
-6. **Meta Ads** para tráfico (CBO, broad audience)
-
-## Métricas objetivo (día 3 post-lanzamiento)
-
-- ROAS ≥ 1.5x
-- Tasa finalización quiz ≥ 65%
-- CVR página resultados ≥ 4%
-- AOV ≥ $20
-
-Ver `_METRICAS.md` para benchmarks completos.
-
-## Decisiones que NO se cambian
-
-1. **No hay VSL** en este proyecto. Cero cámara, cero voz tuya. Todo el copy es texto + diseño + prueba social.
-2. **Voseo argentino neutralizado** en todo el copy.
-3. **Mobile-first** absoluto.
-4. **Frontend desplegado a Vercel** (no usar plataformas no-code para esto).
-5. **Pagos en Hotmart** (no Stripe ni Mercado Pago directo).
-
-## Decisiones pendientes (te toca a vos, humano)
-
-- [ ] Nombre de la marca (en docs aparece como `[MARCA]`)
-- [ ] Dominio (Vercel da `*.vercel.app` gratis si no querés comprar)
-- [ ] Email del autor para los emails
-- [ ] Foto / nombre real para testimonios (o usar los placeholders del doc 03)
+## Stack
+- Next.js 14+ App Router, TypeScript, Tailwind CSS
+- Framer Motion, Zustand
+- Supabase (DB), Hotmart (checkout), Vercel (deploy)
+- PWA: manifest.json + service worker + installable

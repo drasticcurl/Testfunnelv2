@@ -1,16 +1,9 @@
-/**
- * /quiz-v2 — Quiz Funnel V2 "Chau Hinchazón" (estilo MusesAcademy).
- *
- * Funnel largo de ~35 pasos con la página de ventas embebida al final.
- * La lógica completa vive en components/quiz-v2/QuizContainerV2.tsx.
- */
+import type { Metadata } from 'next';
+import QuizContainerV2 from '@/components/quiz/QuizContainerV2';
 
-import { QuizContainerV2 } from '@/components/quiz-v2/QuizContainerV2';
-
-export const metadata = {
-  title: 'Test Anti-Hinchazón V2 — Plan Personalizado',
-  description:
-    'Descubrí cuál de los 4 tipos de hinchazón estás sufriendo y recibí un plan de 7 días hecho a tu medida.',
+export const metadata: Metadata = {
+  title: 'DormíBien — Analizá tu perfil de sueño',
+  description: 'Completá el análisis gratuito de sueño y descubrí qué tipo de insomnio tenés. Plan personalizado de 7 noches.',
 };
 
 export default function QuizV2Page() {

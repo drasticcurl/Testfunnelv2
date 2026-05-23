@@ -1,266 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,500;9..144,0,600;9..144,0,700;9..144,1,400;9..144,1,600&family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── CSS Custom Properties (Design System tokens) ─── */
-:root {
-  /* Colores primarios */
-  --sage: #7A9B7E;
-  --sage-soft: #E8EFE9;
-  --sage-dark: #5B8A60;
-  --cream: #FAF7F2;
-  --cream-warm: #F4EFE6;
-  --charcoal: #2D3A2E;
-  --coral: #E07856;
-  --coral-soft: #F5C7B6;
-  --sand: #D4C5A9;
-
-  /* Neutrales */
-  --white: #FFFFFF;
-  --gray-100: #EFECE7;
-  --gray-400: #9B9890;
-  --gray-600: #5C5852;
-
-  /* Estados */
-  --success: #5B8A60;
-  --warning: #D9A441;
-  --error: #C25450;
-
-  /* Tipografía */
-  --font-serif: 'Fraunces', 'Playfair Display', Georgia, serif;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-
-  /* Spacing */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --space-24: 6rem;
-
-  /* Border radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 999px;
-
-  /* Sombras */
-  --shadow-sm: 0 1px 2px rgba(45, 58, 46, 0.04);
-  --shadow-md: 0 4px 12px rgba(45, 58, 46, 0.08);
-  --shadow-lg: 0 8px 24px rgba(45, 58, 46, 0.12);
-  --shadow-xl: 0 20px 40px rgba(45, 58, 46, 0.16);
-}
-
-/* ─── Base reset ─── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  scroll-behavior: smooth;
-}
-
-body {
-  background-color: var(--cream);
-  color: var(--charcoal);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  line-height: 1.6;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
-
-/* ─── Tipografía base ─── */
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-serif);
-  color: var(--charcoal);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-}
-
-h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 600; }
-h2 { font-size: clamp(1.5rem, 3.5vw, 2.5rem); font-weight: 600; }
-h3 { font-size: clamp(1.25rem, 2.5vw, 1.875rem); font-weight: 500; }
-
-p {
-  line-height: 1.7;
-  color: var(--charcoal);
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* ─── Focus visible (accesibilidad) ─── */
-:focus-visible {
-  outline: 2px solid var(--sage);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* ─── Clases utilitarias de animación ─── */
-.animate-fade-in {
-  animation: fadeIn 400ms ease-out forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 400ms ease-out forwards;
-}
-
-.animate-scale-in {
-  animation: scaleIn 300ms ease-out forwards;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 350ms ease-out forwards;
-}
-
-/* Delays para stagger effect */
-.animation-delay-100 { animation-delay: 100ms; }
-.animation-delay-200 { animation-delay: 200ms; }
-.animation-delay-300 { animation-delay: 300ms; }
-.animation-delay-400 { animation-delay: 400ms; }
-.animation-delay-500 { animation-delay: 500ms; }
-.animation-delay-600 { animation-delay: 600ms; }
-
-/* Inicial oculto para animaciones con delay */
-.animate-hidden {
-  opacity: 0;
-}
-
-/* ─── Keyframes ─── */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  body {
+    @apply antialiased;
+  }
+
+  /* Custom scrollbar for webkit */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-night-700 rounded-full;
   }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
+@layer components {
+  .btn-primary {
+    @apply bg-accent hover:bg-accent-hover text-night-900 font-semibold rounded-lg py-3 px-6 transition-all duration-200 active:scale-95;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
+  .btn-secondary {
+    @apply border border-accent/40 text-accent hover:bg-accent/10 font-medium rounded-lg py-3 px-6 transition-all duration-200;
   }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
+  .card-quiz {
+    @apply bg-night-800 rounded-xl p-6 border border-night-700/50;
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+
+  .card-pwa {
+    @apply bg-pwa-card rounded-xl p-5 shadow-sm border border-pwa-border;
+  }
+
+  .input-quiz {
+    @apply w-full bg-night-700/50 border border-night-600 rounded-lg py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition-colors;
+  }
+
+  .input-pwa {
+    @apply w-full bg-white border border-pwa-border rounded-lg py-3 px-4 text-pwa-text placeholder-gray-400 focus:outline-none focus:border-pwa-accent/60 focus:ring-1 focus:ring-pwa-accent/30 transition-colors;
   }
 }
 
-@keyframes slideOutLeft {
-  from {
-    opacity: 1;
-    transform: translateX(0);
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
-  to {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-}
-
-@keyframes progressFill {
-  from { width: 0%; }
-  to { width: 100%; }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-/* ─── Scrollbar personalizado (webkit) ─── */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--cream);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--sand);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--sage);
-}
-
-/* ─── Reducción de movimiento (accesibilidad) ─── */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* ─── Utilidades de layout ─── */
-.container-quiz {
-  max-width: 640px;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
-}
-
-.container-content {
-  max-width: 720px;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
-}
-
-.container-wide {
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
 }

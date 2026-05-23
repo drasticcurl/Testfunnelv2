@@ -1,14 +1,9 @@
-/**
- * /quiz - contenedor minimo del quiz.
- * La logica completa vive en components/quiz/QuizContainer.tsx
- */
+import type { Metadata } from 'next';
+import QuizContainer from '@/components/quiz/QuizContainer';
 
-import { QuizContainer } from '@/components/quiz/QuizContainer';
-
-export const metadata = {
-  title: 'Test Anti-Hinchazón',
-  description:
-    'Descubrí cuál de los 4 tipos de hinchazón estás sufriendo. Test personalizado de 2 minutos.',
+export const metadata: Metadata = {
+  title: 'DormíBien — Descubrí tu tipo de insomnio',
+  description: 'Quiz rápido de 2 minutos para descubrir por qué dormís mal y cómo solucionarlo en 7 noches.',
 };
 
 export default function QuizPage() {

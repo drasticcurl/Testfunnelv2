@@ -1,43 +1,28 @@
 import type { Metadata, Viewport } from 'next';
 import BottomNav from '@/components/pwa/BottomNav';
-import AppHeader from '@/components/pwa/AppHeader';
-import InstallPrompt from '@/components/pwa/InstallPrompt';
-import { PwaServiceWorker } from './PwaServiceWorker';
+import PwaHeader from '@/components/pwa/PwaHeader';
+import PwaServiceWorker from '@/components/pwa/PwaServiceWorker';
 
 export const metadata: Metadata = {
-  title: 'Protocolo Anti-Hinchazón',
-  description: 'Tu plan personalizado para desinflamar tu abdomen',
-  manifest: '/pwa-manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Anti-Hinchazón',
-  },
-  formatDetection: {
-    telephone: false,
-  },
+  title: 'DormíBien — Tu Protocolo de Sueño',
 };
 
 export const viewport: Viewport = {
-  themeColor: '#7A9B7E',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false,
+  themeColor: '#F8F6F2',
 };
 
 export default function PwaLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-cream">
-      <AppHeader />
-      <main className="pb-20 px-4">
-        <div className="max-w-md mx-auto py-4">
-          {children}
-        </div>
+    <div className="min-h-screen bg-pwa-bg">
+      <PwaServiceWorker />
+      <PwaHeader />
+      <main className="pb-20 px-4 pt-4 max-w-lg mx-auto">
+        {children}
       </main>
       <BottomNav />
-      <InstallPrompt />
-      <PwaServiceWorker />
     </div>
   );
 }
