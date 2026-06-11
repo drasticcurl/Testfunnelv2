@@ -36,9 +36,25 @@ type RevenueStats = {
   byProduct: Array<{ name: string; count: number; revenue: number }>;
   bySource: Array<{ source: string; count: number; revenue: number }>;
   byCampaign: Array<{ campaign: string; count: number; revenue: number }>;
+  byCountry: Array<{ country: string; count: number; revenue: number }>;
   lastSaleAt: string | null;
   configured?: boolean;
-  filtered: { sources: string[] | null; campaigns: string[] | null; count: number; revenue: number };
+  filtered: {
+    sources: string[] | null;
+    campaigns: string[] | null;
+    countries: string[] | null;
+    count: number;
+    revenue: number;
+  };
+};
+
+const COUNTRY_LABEL: Record<string, string> = {
+  CL: '🇨🇱 Chile',
+  CO: '🇨🇴 Colombia',
+  MX: '🇲🇽 México',
+  PE: '🇵🇪 Perú',
+  US: '🇺🇸 EE.UU.',
+  '(desconocido)': '🌎 Sin país',
 };
 
 export function RevenueView() {
@@ -47,6 +63,7 @@ export function RevenueView() {
   const [revenueError, setRevenueError] = useState<string | null>(null);
   const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
+  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(new Set());
 
   const fetchRevenueStats = useCallback(async () => {
     setRevenueLoading(true);
@@ -55,6 +72,7 @@ export function RevenueView() {
       const params = new URLSearchParams();
       if (selectedSources.size > 0) params.set('utm_sources', Array.from(selectedSources).join(','));
       if (selectedCampaigns.size > 0) params.set('utm_campaigns', Array.from(selectedCampaigns).join(','));
+      if (selectedCountries.size > 0) params.set('countries', Array.from(selectedCountries).join(','));
       const url = `/api/admin/revenue-stats${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
       if (res.status === 401) { window.location.href = '/admin'; return; }
@@ -67,7 +85,7 @@ export function RevenueView() {
     } finally {
       setRevenueLoading(false);
     }
-  }, [selectedSources, selectedCampaigns]);
+  }, [selectedSources, selectedCampaigns, selectedCountries]);
 
   useEffect(() => { fetchRevenueStats(); }, [fetchRevenueStats]);
 
@@ -89,8 +107,18 @@ export function RevenueView() {
   }, []);
   const clearCampaigns = useCallback(() => setSelectedCampaigns(new Set()), []);
 
-  const hasAnyFilter = selectedSources.size > 0 || selectedCampaigns.size > 0;
-  const currency = revenueStats?.currency ?? 'ARS';
+  const toggleCountry = useCallback((country: string) => {
+    setSelectedCountries((prev) => {
+      const next = new Set(prev);
+      if (next.has(country)) next.delete(country); else next.add(country);
+      return next;
+    });
+  }, []);
+  const clearCountries = useCallback(() => setSelectedCountries(new Set()), []);
+
+  const hasAnyFilter =
+    selectedSources.size > 0 || selectedCampaigns.size > 0 || selectedCountries.size > 0;
+  const currency = revenueStats?.currency ?? 'USD';
 
   return (
     <div className="space-y-5">
@@ -114,7 +142,32 @@ export function RevenueView() {
         </Banner>
       )}
 
-      {/* Filtro por campaña (principal) */}
+      {/* Filtro por país (principal — saber qué país da mejor ROAS) */}
+      {revenueStats && revenueStats.byCountry.length > 0 && (
+        <SectionCard
+          title="Filtrar por país"
+          subtitle="Para ver qué país te da mejor ROAS."
+          actions={selectedCountries.size > 0 ? (
+            <button onClick={clearCountries} className="text-[11px] font-medium text-neutral-400 underline hover:text-neutral-100">
+              Limpiar ({selectedCountries.size})
+            </button>
+          ) : undefined}
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {revenueStats.byCountry.map((c) => (
+              <Chip
+                key={c.country}
+                label={COUNTRY_LABEL[c.country] ?? c.country}
+                count={c.count}
+                active={selectedCountries.has(c.country)}
+                onClick={() => toggleCountry(c.country)}
+              />
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* Filtro por campaña */}
       {revenueStats && revenueStats.byCampaign.length > 0 && (
         <SectionCard
           title="Filtrar por campaña"
@@ -213,6 +266,41 @@ export function RevenueView() {
                       <td className="px-5 py-2.5 text-right tabular-nums text-neutral-300">{p.count.toLocaleString('es-AR')}</td>
                       <td className="px-5 py-2.5 text-right font-semibold tabular-nums text-emerald-400">{formatMoney(p.revenue, currency)}</td>
                       <td className="px-5 py-2.5 text-right text-neutral-500">{formatPct(pct)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+      )}
+
+      {/* Revenue por país (siempre se muestra el breakdown completo, no respeta filtro) */}
+      {revenueStats && revenueStats.byCountry.length > 0 && (
+        <SectionCard
+          title="Revenue por país"
+          subtitle="Ranking absoluto — sin aplicar el filtro de chips."
+          bodyClassName="p-0"
+        >
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-left text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                <tr className="border-b border-white/[0.06]">
+                  <th className="px-5 py-2.5">País</th>
+                  <th className="px-5 py-2.5 text-right">Ventas</th>
+                  <th className="px-5 py-2.5 text-right">Revenue</th>
+                  <th className="px-5 py-2.5 text-right">Ticket promedio</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {revenueStats.byCountry.map((c, i) => {
+                  const avg = c.count > 0 ? c.revenue / c.count : 0;
+                  return (
+                    <tr key={i} className="transition-colors hover:bg-white/[0.02]">
+                      <td className="px-5 py-2.5 text-neutral-200">{COUNTRY_LABEL[c.country] ?? c.country}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-300">{c.count.toLocaleString('es-AR')}</td>
+                      <td className="px-5 py-2.5 text-right font-semibold tabular-nums text-emerald-400">{formatMoney(c.revenue, currency)}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-400">{formatMoney(avg, currency)}</td>
                     </tr>
                   );
                 })}

@@ -167,7 +167,7 @@ export function SlideSalesPage() {
       {/* COUNTDOWN BAR — normal inline element, scrolls with page, NEVER overlaps */}
       <div className="bg-coral text-white py-2.5 px-4 flex items-center justify-between text-sm font-sans">
         <span className="font-medium">
-          {(SEASON_DISCOUNT[country] || SEASON_DISCOUNT.AR)(timeStr)}
+          {(SEASON_DISCOUNT[country] || SEASON_DISCOUNT.CL)(timeStr)}
         </span>
         <button
           type="button"

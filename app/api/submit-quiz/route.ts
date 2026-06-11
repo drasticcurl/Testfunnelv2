@@ -1,35 +1,41 @@
 /**
  * POST /api/submit-quiz
  *
- * Recibe los datos del quiz al final del flujo (Agente 02 -> SlideEmailCapture).
- * Hace 3 cosas en paralelo:
- *  1. Forward al webhook generico (Make.com / Zapier) si esta configurado
- *  2. Crea contacto en Systeme.io con tags segmentados
- *  3. Dispara evento Lead a Meta CAPI (con email hasheado SHA256)
+ * Recibe los datos del quiz al final del flujo (SlideEmailCapture). Hace 3 cosas:
+ *  1. Reenvía a un webhook genérico (Make.com / Zapier) si está configurado
+ *     vía `QUIZ_WEBHOOK_URL` (opcional).
+ *  2. Dispara evento `Lead` a Meta CAPI server-side (con email hasheado SHA256).
+ *  3. Persiste el lead en `clientes` (Supabase) — incluye el `country`
+ *     detectado en el cliente para poder segmentar /admin/leads.
  *
- * Body esperado (lo envia QuizContainer.handleEmailSubmit):
+ * Body esperado (lo manda QuizContainerV2.handleEmailSubmit):
  *   {
- *     ...answers,           // todas las QuizAnswers (edad, momento, sintomas, etc)
- *     email: string,        // requerido
- *     nombre?: string
+ *     ...answers,                       // todas las QuizAnswers
+ *     email: string,                    // requerido
+ *     nombre?: string,
+ *     country?: 'CL' | 'CO' | 'MX' | 'PE' | 'US',
+ *     fbc?: string,
+ *     fbp?: string,
  *   }
  *
- * Falla gracefully: cualquier integracion que falle se loguea pero no
- * rompe la respuesta al cliente. El cliente solo necesita saber que el
- * dato llego al backend para avanzar al SlideLoading.
+ * Falla gracefully: cualquier integración que falle se loguea pero no rompe
+ * la respuesta al cliente. El cliente solo necesita saber que el dato llegó
+ * al backend para avanzar al SlideLoading.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { sendCapiEvent, upsertSystemeContact, getMetaCookiesFromRequest } from '@/lib/tracking';
+import { sendCapiEvent, getMetaCookiesFromRequest } from '@/lib/tracking';
 import { calcularTipoV2, calcularSeveridadV2 } from '@/lib/quiz-v2/helpers';
 import { getSupabase } from '@/lib/supabase';
-import { sendDiagnosticoEmail } from '@/lib/email/resend';
 
 export const runtime = 'nodejs';
+
+const SUPPORTED_COUNTRIES = new Set(['CL', 'CO', 'MX', 'PE', 'US']);
 
 type SubmitBody = Record<string, unknown> & {
   email?: string;
   nombre?: string;
+  country?: string;
   fbc?: string;
   fbp?: string;
 };
@@ -40,6 +46,14 @@ function severidadBucket(score: number): 'baja' | 'media' | 'alta' {
   return 'baja';
 }
 
+/** Devuelve un código ISO de país soportado o `undefined`. */
+function normalizeCountry(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const upper = raw.trim().toUpperCase();
+  if (upper.length !== 2 || !SUPPORTED_COUNTRIES.has(upper)) return undefined;
+  return upper;
+}
+
 export async function POST(req: NextRequest) {
   let body: SubmitBody;
   try {
@@ -48,21 +62,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 });
   }
 
-  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   if (!email || !email.includes('@')) {
     return NextResponse.json({ ok: false, error: 'invalid_email' }, { status: 400 });
   }
 
   const nombre = typeof body.nombre === 'string' ? body.nombre.trim() : undefined;
+  const country = normalizeCountry(body.country);
 
-  // Calculo tipo + severidad para tags y para enriquecer al webhook.
-  // Defensivo: si el cálculo falla, usamos valores neutros para NO bloquear el
-  // guardado del lead (lo crítico es persistir el email).
-  //
-  // IMPORTANTE: `severidad` se guarda en una columna SMALLINT (entero) en
-  // Supabase. calcularSeveridadV2 devuelve nivelInflamacion/10 → un DECIMAL
-  // (ej. 8.5). Si entra un decimal a un SMALLINT, el INSERT falla y el lead NO
-  // se guarda. Por eso lo redondeamos a entero acá.
+  // Cálculo defensivo: si falla, valores neutros — lo crítico es persistir el
+  // email. `severidad` se redondea a entero porque la columna es SMALLINT.
   let tipo = 1;
   let severidad = 0;
   try {
@@ -78,8 +87,7 @@ export async function POST(req: NextRequest) {
   const ip =
     ipHeader.split(',')[0]?.trim() || req.headers.get('x-real-ip') || undefined;
 
-  // ─── 1. Webhook generico (Make.com / Zapier) ──────────────────────────
-  // Fire-and-forget. Si falla no bloquea al usuario.
+  // ─── 1. Webhook genérico (Make.com / Zapier) — opcional ───────────────
   const webhookUrl = process.env.QUIZ_WEBHOOK_URL;
   const webhookPromise = webhookUrl
     ? fetch(webhookUrl, {
@@ -87,17 +95,16 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...body,
+          country,
           tipo,
           severidad,
           severidadLabel: sevLabel,
           submittedAt: new Date().toISOString(),
-          source: 'anti-hinchazon-quiz',
+          source: 'chau-hinchazon-quiz',
         }),
       })
         .then((r) => {
-          if (!r.ok) {
-            console.error(`[submit-quiz] Webhook ${r.status}`);
-          }
+          if (!r.ok) console.error(`[submit-quiz] Webhook ${r.status}`);
           return undefined;
         })
         .catch((err) => {
@@ -106,25 +113,7 @@ export async function POST(req: NextRequest) {
         })
     : Promise.resolve(undefined);
 
-  // ─── 2. Systeme.io: crear contacto con tags ───────────────────────────
-  // Tags segmentados para que el agente 12 (emails) pueda segmentar:
-  //   quiz_completado, tipo_X, severidad_alta/media/baja, no_comprador
-  const systemePromise = upsertSystemeContact({
-    email,
-    nombre,
-    tags: [
-      'quiz_completado',
-      `tipo_${tipo}`,
-      `severidad_${sevLabel}`,
-      'no_comprador',
-    ],
-    fields: {
-      tipo_hinchazon: tipo,
-      severidad_score: severidad,
-    },
-  });
-
-  // ─── 3. Meta CAPI: evento Lead ────────────────────────────────────────
+  // ─── 2. Meta CAPI: evento Lead ────────────────────────────────────────
   const metaCookies = getMetaCookiesFromRequest(req, { fbc: body.fbc, fbp: body.fbp });
   const capiPromise = sendCapiEvent({
     event_name: 'Lead',
@@ -136,37 +125,40 @@ export async function POST(req: NextRequest) {
       ...metaCookies,
     },
     custom_data: {
-      content_name: 'Quiz Anti-Hinchazon',
-      content_category: `Tipo ${tipo}`,
+      content_name: 'Quiz Anti-Hinchazón',
+      content_category: `Tipo ${tipo}${country ? ` · ${country}` : ''}`,
     },
   });
 
-  // ─── 4. Supabase: guardar lead en tabla clientes ──────────────────────
+  // ─── 3. Supabase: guardar lead en `clientes` ──────────────────────────
   const supabase = getSupabase();
   const supabasePromise = supabase
     ? (async () => {
         try {
+          const row: Record<string, unknown> = {
+            email,
+            nombre,
+            apertura: body.apertura as string | undefined,
+            momento: body.momento_del_dia as string | undefined,
+            tiempo: body.tiempo_con_problema as string | undefined,
+            sintomas: Array.isArray(body.sintomas) ? body.sintomas : [],
+            ya_probo: Array.isArray(body.ya_probo) ? body.ya_probo : [],
+            impacto_emocional: body.impacto_emocional as string | undefined,
+            objetivo: body.objetivo as string | undefined,
+            compromiso: body.compromiso as string | undefined,
+            tipo_hinchazon: tipo,
+            severidad,
+            fbc: body.fbc,
+            fbp: body.fbp,
+          };
+          // Solo seteamos `country` si es válido — si no, dejamos que la columna
+          // use su DEFAULT 'CL' definido en el schema (no pisamos a NULL en
+          // un upsert si por algún motivo el cliente no lo manda).
+          if (country) row.country = country;
+
           const { error } = await supabase
             .from('clientes')
-            .upsert(
-              {
-                email,
-                nombre,
-                apertura: body.apertura as string | undefined,
-                momento: body.momento_del_dia as string | undefined,
-                tiempo: body.tiempo_con_problema as string | undefined,
-                sintomas: Array.isArray(body.sintomas) ? body.sintomas : [],
-                ya_probo: Array.isArray(body.ya_probo) ? body.ya_probo : [],
-                impacto_emocional: body.impacto_emocional as string | undefined,
-                objetivo: body.objetivo as string | undefined,
-                compromiso: body.compromiso as string | undefined,
-                tipo_hinchazon: tipo,
-                severidad,
-                fbc: body.fbc,
-                fbp: body.fbp,
-              },
-              { onConflict: 'email' },
-            );
+            .upsert(row, { onConflict: 'email' });
           if (error) {
             console.error('[submit-quiz] Supabase upsert error:', error.message);
             return { ok: false, error: error.message };
@@ -179,42 +171,18 @@ export async function POST(req: NextRequest) {
       })()
     : Promise.resolve({ ok: false, error: 'no_config' } as { ok: boolean; error?: string });
 
-  // ─── 5. Resend: DESACTIVADO ─────────────────────────────────────────────
-  // No enviamos email post-quiz. Solo se colecta el lead para futuras campañas.
-  // El email de bienvenida se envía SOLO post-compra (desde hotmart-webhook).
-  const resendPromise = Promise.resolve({ ok: false } as { ok: boolean });
-
-  // Esperamos en paralelo. Cualquier .catch ya esta absorbido arriba.
-  const [, systemeRes, capiRes, supabaseRes, resendRes] = await Promise.all([
+  const [, capiRes, supabaseRes] = await Promise.all([
     webhookPromise,
-    systemePromise,
     capiPromise,
     supabasePromise,
-    resendPromise,
   ]);
-
-  // Actualizar email_enviado en supabase si se envió
-  if (supabase && resendRes.ok) {
-    (async () => {
-      try {
-        await supabase
-          .from('clientes')
-          .update({ email_enviado: true })
-          .eq('email', email);
-      } catch {
-        // non-blocking
-      }
-    })();
-  }
 
   return NextResponse.json({
     ok: true,
     integrations: {
       webhook: webhookUrl ? 'sent' : 'skipped',
-      systeme: systemeRes.ok ? 'sent' : `skipped:${systemeRes.reason ?? systemeRes.error ?? 'unknown'}`,
       capi: capiRes.ok ? 'sent' : `skipped:${capiRes.reason ?? capiRes.error ?? 'unknown'}`,
       supabase: supabaseRes.ok ? 'sent' : `skipped:${supabaseRes.error ?? 'unknown'}`,
-      resend: resendRes.ok ? 'sent' : 'skipped',
     },
   });
 }

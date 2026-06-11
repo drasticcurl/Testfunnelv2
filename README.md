@@ -1,38 +1,39 @@
-# Método del Agua de Arroz — Quiz Funnel
+# Método del Agua de Arroz — Quiz Funnel multi-país
 
-Quiz funnel de 22 slides para vender un protocolo de deshinchado y baja de peso basado en agua de arroz. Target: mujeres argentinas 25-55. El motor del quiz está diseñado para ser **reutilizable**: el contenido (temática, precios, textos) vive centralizado y el resto es infraestructura genérica.
+Quiz funnel de 22 slides para vender un protocolo de deshinchado y baja de
+peso basado en agua de arroz. **Hispanohablantes en Chile, Colombia, México,
+Perú y EE.UU.** El motor del quiz está diseñado para ser **reutilizable**: el
+contenido (temática, precios, textos) vive centralizado y el resto es
+infraestructura genérica.
+
+> **Argentina y Brasil están fuera de esta versión.** AR no se vende desde
+> este proyecto y BR queda bloqueado a nivel middleware.
 
 ## Qué se vende
 
-**Producto:** "Protocolo Chau Hinchazón" — un **producto digital** (no físico, sin
-envío) basado en el **Método del Agua de Arroz**. Es un plan antiinflamatorio para
-**deshinchar la panza y bajar de peso** en mujeres, presentado por la
-**Lic. Natalia Reyes (MN 9283)** como autoridad de marca.
-
-El "Método del Agua de Arroz" es el ángulo del producto: tomar agua de arroz (rica
-en almidón resistente, un prebiótico natural) como hábito diario para alimentar la
-microbiota, reducir la inflamación intestinal y la retención de líquidos. Es el
-gancho educativo del funnel — no se venden suplementos ni productos físicos, se
-vende **el acceso a la app/PWA** con el plan, las recetas y las guías.
+**Producto:** "Protocolo Chau Hinchazón" — un **producto digital** (no físico,
+sin envío) basado en el **Método del Agua de Arroz**. Es un plan
+antiinflamatorio para **deshinchar la panza y bajar de peso** en mujeres,
+presentado por la **Lic. Natalia Reyes (MN 9283)** como autoridad de marca.
 
 **Entrega:** al pagar, el acceso se habilita por email; el usuario entra a la
-**PWA** (`/pwa/login`) con el email de compra. No se descarga nada de la tienda de
-apps (es una web app instalable).
+**PWA** (`/pwa/login`) con el email de compra. No se descarga nada de la tienda
+de apps (es una web app instalable).
 
-### Oferta (embudo de 3 pasos, todo en ARS)
+### Embudo (todo en USD, un solo producto Hotmart para los 5 países)
 
-| Paso | Qué es | Precio | Qué incluye |
-|---|---|---|---|
-| **Front** | Plan 7 días + app | **$6.000** | Guía del Método Agua de Arroz, protocolo de 7 días personalizado, 21 recetas antiinflamatorias, Kit Express, acceso a la app |
-| **Upsell** | Programa 30 días completo | **$19.900** | Todo lo del front + plan 30 días, +60 recetas, recetario de postres, listas de compras, test de reintroducción de alimentos, seguimiento y meal prep |
-| **Downsell** | El mismo Programa 30 días, más barato | **$12.900** | Igual que el upsell ($7.000 menos), si rechazan la oferta anterior |
+| Paso | Qué es | Precio |
+|---|---|---|
+| **Front** | Plan 7 días + acceso a la app | **US$19** |
+| **Upsell** | Programa 30 días TURBO completo | **US$39** |
+| **Downsell** | Mismo Programa 30 días, US$10 menos | **US$29** |
+
+> Hotmart hace la conversión de moneda en su checkout: el comprador chileno ve
+> precios en CLP, el mexicano en MXN, etc.; tu cuenta cobra USD.
 
 > El **acceso a la PWA es el mismo** pague lo que pague (no hay tiers): cualquier
 > compra aprobada habilita todo. El precio mayor del Programa 30 días es por el
 > **contenido extra** (recetas/guías), no por desbloquear features de la app.
-
-> Garantía ofrecida: 7 días (y por ley de consumidor en AR, 10 días de
-> arrepentimiento). Ver políticas en `app/legal/`.
 
 ## Stack
 
@@ -40,326 +41,238 @@ apps (es una web app instalable).
 - **Styling:** Tailwind CSS + CSS custom properties
 - **State:** Zustand (persistido en localStorage)
 - **Animaciones:** Framer Motion
-- **Tracking:** Meta Pixel + CAPI server-side
+- **Tracking:** Meta Pixel + Conversions API server-side
 - **Hosting:** Vercel
-- **DB:** Supabase (clientes, compras, acceso PWA)
-- **Checkout:** Shopify (Mercado Pago, ARS). Configurable via `NEXT_PUBLIC_CHECKOUT_URL` (fallback legacy: `NEXT_PUBLIC_HOTMART_CHECKOUT_URL`)
-- **Emails:** email de confirmación nativo de Shopify post-compra (mejor entregabilidad). Resend queda solo para flujos opcionales.
+- **DB:** Supabase (`clientes`, `purchases`, `funnel_counts`)
+- **Checkout:** Hotmart (un solo producto en USD para los 5 países)
 
-## Cobro con Shopify
 
-El cobro se hace con **Shopify** (gateway **Mercado Pago**, moneda ARS). El flujo:
+## ⚡ Quick start
 
-1. Sales page (`/quiz`) → CTA → checkout de Shopify (permalink de carrito).
-2. Shopify cobra y dispara el webhook `orders/paid` → **`/api/shopify-webhook`**.
-3. El webhook valida el HMAC, escribe `status='approved'` en Supabase (`purchases`)
-   y dispara `Purchase` a Meta CAPI.
-4. Acceso a la PWA: `/pwa/login` busca esa compra aprobada por email y firma la sesión.
+```bash
+# 1. Clonar e instalar
+git clone https://github.com/...
+cd Testfunnelv2
+npm install
 
-### Embudo y precios (ARS — fuente única: `lib/quiz-v2/config.ts` → `PRICING`)
+# 2. Configurar variables de entorno
+cp .env.local.example .env.local
+# (editar .env.local con tus valores reales)
 
-| Producto | Precio | Checkout (env var) |
+# 3. Crear las tablas en Supabase
+#    Abrir Supabase Dashboard → SQL Editor → New query
+#    Pegar el contenido entero de `supabase/setup.sql` y ejecutarlo.
+#    (idempotente: tarda <5s, no rompe si ya hay tablas)
+
+# 4. Levantar el dev server
+npm run dev      # http://localhost:3000
+```
+
+> El **único SQL que necesitás correr** es `supabase/setup.sql`. Las
+> migraciones individuales en `supabase/migrations/*.sql` son referencia
+> histórica del proyecto anterior — `setup.sql` ya las consolida.
+
+
+## 🌎 Países soportados y rutas SEO
+
+| Código | País | Ruta del ad | Modismo | Método de pago listado |
+|---|---|---|---|---|
+| `CL` | 🇨🇱 Chile      | `/chile`    | "guata"    | Webpay |
+| `CO` | 🇨🇴 Colombia   | `/colombia` | "barriga"  | PSE |
+| `MX` | 🇲🇽 México     | `/mexico`   | "pancita"  | OXXO |
+| `PE` | 🇵🇪 Perú       | `/peru`     | "barriga"  | Yape |
+| `US` | 🇺🇸 EE.UU.     | `/usa`      | "abdomen"  | PayPal · Amex |
+
+**Cada ruta SEO fuerza el país** en el CountryContext → precios, modismos,
+imagen del periódico y método de pago aparecen correctos desde el primer
+render (sin flicker mientras se resuelve la geo-IP).
+
+**Tráfico orgánico** (alguien que entra a `/` o a `/quiz` directo): el quiz
+auto-detecta el país por **(1)** `?country=XX` en la URL → **(2)** localStorage
+de visita previa → **(3)** geo-IP via ip-api.com → **(4)** fallback CL.
+
+### Cómo agregar un país
+
+1. Sumar el código al type `CountryCode` en `lib/quiz-v2/localization.ts`.
+2. Agregar entrada en `TEXTS_BY_COUNTRY`, `QUIZ_OVERRIDES` y
+   `SOCIAL_PROOF_OVERRIDES`. Copiá uno parecido y ajustá el modismo.
+3. Sumar el código al `CHECK` de `country` en `supabase/setup.sql` (3 lugares).
+4. Crear `app/{slug}/page.tsx` (copiar `app/chile/page.tsx`).
+5. Subir la imagen del periódico a `public/img/noticia-viral-{cc}.jpg`
+   (ver `public/img/NOTICIA-VIRAL-README.md` para sugerencias y specs).
+
+### Cómo cambiar la imagen del periódico de un país
+
+Reemplazar el archivo `public/img/noticia-viral-{cc}.jpg`. Las dimensiones
+recomendadas son 900×1342 px (vertical). Si el archivo no existe, el slide
+muestra un fallback de texto con el nombre del medio sugerido (en
+`SOCIAL_PROOF_OVERRIDES[CC].socialProofSource`).
+
+
+## 💳 Cobro con Hotmart
+
+Hotmart cobra **un único producto en USD** para los 5 países. El flujo:
+
+1. Usuario completa el quiz en `/chile` (o `/colombia`, etc.).
+2. Click en "OBTENER MI PLAN" → checkout de Hotmart con la atribución
+   codificada en `?xcod=country=CL&utm_source=facebook&utm_campaign=...`.
+   Ver `lib/cookies.ts → withCheckoutAttribution`.
+3. Hotmart cobra y dispara el webhook `PURCHASE_APPROVED` →
+   **`/api/hotmart-webhook`**.
+4. El webhook valida el `hottok`, parsea `xcod` para extraer UTMs + país,
+   inserta en `purchases` (status='approved'), dispara `Purchase` a Meta CAPI
+   y registra la venta en `funnel_counts` (visible en `/admin/funnel`).
+5. Acceso a la PWA: `/pwa/login` busca esa compra aprobada por email y firma
+   la sesión.
+
+### Configurar el webhook en Hotmart
+
+En Hotmart Admin → **Tools → Webhooks**:
+
+- **URL:** `https://TU-DOMINIO/api/hotmart-webhook`
+- **Eventos:** `PURCHASE_APPROVED`, `PURCHASE_COMPLETE`, `PURCHASE_REFUNDED`,
+  `PURCHASE_CHARGEBACK`, `PURCHASE_CANCELED`.
+- **HOTTOK:** copialo y pegalo en `HOTMART_HOTTOK` en tu `.env.local` /
+  Vercel env vars. Sin esto cualquiera puede mandar compras falsas.
+
+### Cómo se atribuye la venta a un país
+
+El frontend, antes de redirigir al checkout de Hotmart, codifica
+`country=CL&utm_source=facebook&...` dentro de `?xcod=...`. Hotmart preserva
+el `xcod` y lo devuelve en el webhook (`purchase.tracking.source` o
+`purchase.origin.xcod`). El webhook lo parsea con `URLSearchParams` y guarda
+los campos en `purchases.country`, `purchases.utm_*`, etc.
+
+**Fallbacks de país** (orden de confiabilidad):
+1. `xcod.country` (lo más confiable: lo set la ruta SEO)
+2. `purchase.checkout_country.iso` (geo-IP del checkout de Hotmart)
+3. `buyer.address.country_iso` / `buyer.address.country`
+4. `buyer.country`
+5. NULL (la compra queda sin país)
+
+> Si la compra es un upsell/downsell sin UTMs/país (porque el usuario volvió
+> después y se perdió el localStorage), el webhook **hereda** la atribución de
+> la compra previa del mismo email.
+
+
+## 📊 Admin (`/admin`)
+
+Password-gate con `ADMIN_PASSWORD` (HMAC-firmed cookie, rate-limit por IP).
+
+| Vista | URL | Qué ves |
 |---|---|---|
-| **Front** — Plan 7 días | **$6.000** | `NEXT_PUBLIC_CHECKOUT_URL` |
-| **Upsell** — Programa 30 días | **$19.900** | `NEXT_PUBLIC_UPSELL_CHECKOUT_URL` |
-| **Downsell** — mismo Programa 30 días ($7.000 menos) | **$12.900** | `NEXT_PUBLIC_DOWNSELL_CHECKOUT_URL` (mismo producto + código `SEGUNDA`) |
+| Resumen | `/admin` | KPIs hero (revenue, ventas, leads), embudo de hoy, top campañas |
+| Embudo | `/admin/funnel` | Drop-off slide-by-slide, **filtro por día y por país**, atribución por campaña, **breakdown por país** |
+| Leads | `/admin/leads` | KPIs de captura + export CSV (con columna `Country`, **filtro por país opcional**) |
+| Ventas | `/admin/ventas` | Revenue real desde `purchases`, **filtro multi-select por campaña/fuente/país**, **breakdown por país** |
 
-Flujo post-compra del front: `/upsell` (oferta + VSL) → "SÍ" **redirige directo al
-checkout de Shopify** · "no" → `/downsell`. El "no gracias" final va a `/pwa/login`.
-El checkout de Shopify **no se puede embeber** (X-Frame-Options), por eso `/upsell`
-y `/downsell` **redirigen** al permalink en vez de usar iframe.
+Backend del funnel: `FUNNEL_STORE=supabase` (default recomendado) usa la
+tabla `funnel_counts`. `FUNNEL_STORE=memory` solo persiste durante el proceso
+(útil para dev local sin DB).
 
-### Una sola tienda + banners condicionales
 
-Se usa **una sola tienda** Shopify. La app de thank-you page (Upsell.com / ReConvert)
-muestra **banners condicionales** según el producto del pedido:
-- compró el **front** → banner "⚠️ Falta 1 paso" → `/upsell`;
-- compró el **30 días** (upsell o downsell) → banner "Acceder a mi protocolo" → `/pwa/login`.
-
-El **email de confirmación de Shopify** es la red de seguridad del acceso: lleva un
-botón condicional (mismo criterio) al `/upsell` o al `/pwa/login`.
-
-> Decisiones de arquitectura, límites de Shopify Basic + Mercado Pago, modelo del
-> competidor, vTurb y checklist de configuración: ver **`.kiro/steering/shopify-checkout.md`**.
-
-> Nota: hay un único quiz en `/quiz`. Las rutas legacy `/quiz-v2` y `/quiz-v3`
-> redirigen a `/quiz` (middleware). El folder `components/quiz-v2/` contiene el
-> quiz actual (su contenido es "V3 — agua de arroz").
-
-## Estructura del proyecto
+## 📁 Estructura del proyecto
 
 ```
 app/
-├── quiz/            → Quiz funnel (22 slides con sales page embebida)
-├── pwa/             → PWA post-compra (plan 30 días, recetas, guías, progreso)
-├── admin/           → Dashboard admin (embudo, métricas)
+├── chile/, colombia/, mexico/, peru/, usa/  → Rutas SEO por país (forzan el locale)
+├── quiz/                                    → Quiz con auto-detect de país (fallback)
+├── pwa/                                     → PWA post-compra
+├── admin/                                   → Dashboard admin
 ├── api/
-│   ├── track/                → CAPI Meta + eventos internos
-│   ├── submit-quiz/          → Lead al completar el quiz (Meta + Supabase)
-│   ├── shopify-webhook/      → Webhook de compra (Shopify) → activa acceso PWA
-│   ├── hotmart-webhook/      → Webhook de compra (Hotmart, legacy)
+│   ├── track/                → CAPI Meta + eventos al funnel store
+│   ├── submit-quiz/          → Lead al completar el quiz (CAPI + Supabase + país)
+│   ├── hotmart-webhook/      → Webhook único de Hotmart (compras + UTMs + país)
 │   ├── pwa/auth/             → Login PWA con HMAC
-│   ├── pwa/webhook/hotmart/  → Webhook PWA legacy (proxy)
-│   └── admin/funnel-data/    → Datos del dashboard admin
-├── upsell/          → Página post-compra (oferta del Programa 30 días; CTA redirige a Shopify)
-└── legal/           → Privacidad y términos
+│   ├── pwa/webhook/hotmart/  → Proxy deprecated → /api/hotmart-webhook
+│   └── admin/                → Endpoints del dashboard
+├── upsell/                   → Página VSL post-compra del front
+├── downsell/                 → Página de "última oportunidad"
+└── legal/                    → Privacidad y términos
 
 components/
 ├── quiz-v2/         → Componentes del quiz V3 (agua de arroz)
+│   ├── QuizContainerV2.tsx     → Orquesta los 22 slides
+│   ├── CountryQuizPage.tsx     → Wrapper que envuelve con CountryProvider
+│   └── Slide*.tsx              → Cada slide individual
 ├── pwa/             → Componentes de la PWA
+├── upsell/          → Componentes del upsell/downsell
 ├── ui/              → Button, Slider, ProgressBar, OptionCard
-├── upsell/          → Componentes de las páginas de upsell
-└── quiz/            → Componentes V1 (referencia, no se usan)
+└── admin/           → ui.tsx, FunnelShape, etc.
 
 lib/
-├── constants.ts     → ⭐ Constantes transversales (claves de localStorage). SINGLE SOURCE OF TRUTH
 ├── quiz-v2/
-│   ├── config.ts        → ⭐ Contenido del funnel: producto, experta, tipos de resultado, bonus
-│   ├── localization.ts  → ⭐ Precios y textos por país (AR, CO, PE, MX, CL)
-│   ├── data.ts          → Las 22 slides (preguntas)
-│   ├── types.ts         → Tipos de TypeScript del quiz
-│   ├── store.ts         → Estado del quiz (Zustand + persist)
-│   ├── helpers.ts       → Cálculo de diagnóstico, IMC, proyección de peso
-│   ├── CountryContext.tsx / useCountryLocale.ts → Localización por país
-│   └── index.ts         → Barrel export del módulo
-├── pwa/             → Data de plan, recetas, ritual, foods, sesión, acceso, etc.
+│   ├── config.ts               → ⭐ Producto, experta, checkout URLs, PRICING (USD)
+│   ├── localization.ts         → ⭐ Precios y textos por país (CL/CO/MX/PE/US)
+│   ├── data.ts                 → Las 22 slides
+│   ├── store.ts                → Estado del quiz (Zustand + persist)
+│   ├── helpers.ts              → Cálculo de diagnóstico, IMC, proyección
+│   ├── CountryContext.tsx      → React Context con `forced` opcional
+│   └── useCountryLocale.ts     → Hook con detección URL/localStorage/IP
 ├── admin/           → Auth + store del admin (memory / supabase)
-├── email/           → Resend + emails de follow-up (opcional; el acceso lo manda el email de Shopify)
-├── cookies.ts       → Lectura de cookies y captura de UTMs (browser-safe)
+├── pwa/             → Sesión PWA, acceso, datos del plan/recetas
+├── cookies.ts       → UTMs + atribución Hotmart (xcod)
+├── constants.ts     → STORAGE_KEYS (country, utm, quizState)
 ├── supabase.ts      → Cliente Supabase server-side
-└── tracking.ts      → CAPI Meta (server-side)
+└── tracking.ts      → CAPI Meta server-side
 ```
 
-> Migraciones de Supabase en `supabase/migrations/` (incluye `003_create_purchases.sql`,
-> la tabla que habilita el acceso a la PWA).
 
 ## ⭐ Fuente única de verdad (single source of truth)
 
-El objetivo de la última refactorización es que **cambiar algo se haga en UN solo lugar** y no haya que perseguir strings duplicados por todos los componentes.
+El objetivo de la arquitectura es que **cambiar algo se haga en UN solo lugar**:
 
-| Qué querés cambiar | Dónde se cambia (único lugar) |
+| Qué querés cambiar | Dónde se cambia |
 |---|---|
-| Nombre del producto / marca | `lib/quiz-v2/config.ts` → `PRODUCT_NAME`, `PRODUCT_SHORT_NAME` |
+| Nombre del producto | `lib/quiz-v2/config.ts` → `PRODUCT_NAME` |
 | Experta / autoridad | `lib/quiz-v2/config.ts` → `EXPERT_NAME`, `EXPERT_TITLE`, `EXPERT_IMAGE` |
-| URL de checkout | `lib/quiz-v2/config.ts` → `CHECKOUT_URL` (lee env var) |
-| Nombres de los 4 tipos de resultado | `lib/quiz-v2/config.ts` → `QUIZ_RESULT_TYPE_NAMES` |
-| Bullets / value stack / bonus por tipo | `lib/quiz-v2/config.ts` → `REFRAME_BULLETS`, `EXTRA_VALUE_ITEMS`, `getBonusTitle/Desc` |
-| Banners estacionales por país | `lib/quiz-v2/config.ts` → `SEASON_BANNER`, `SEASON_DISCOUNT` |
-| Precios y textos por país | `lib/quiz-v2/localization.ts` |
+| URL de checkout (Hotmart) | env `NEXT_PUBLIC_HOTMART_CHECKOUT_URL` (front) y sus pares |
+| Precios USD del embudo | `lib/quiz-v2/config.ts` → `PRICING` |
+| Precios mostrados al usuario | `lib/quiz-v2/localization.ts` → `PRICING_BY_COUNTRY` (todos los países apuntan al mismo `USD_PRICING`) |
+| Banner estacional por país | `lib/quiz-v2/config.ts` → `SEASON_BANNER`, `SEASON_DISCOUNT` |
+| Modismos / textos / FAQ por país | `lib/quiz-v2/localization.ts` → `TEXTS_BY_COUNTRY` |
+| Imagen del periódico por país | `public/img/noticia-viral-{cc}.jpg` (config en `SOCIAL_PROOF_OVERRIDES`) |
 | Preguntas del quiz | `lib/quiz-v2/data.ts` |
+| Bullets/value stack/bonus por tipo | `lib/quiz-v2/config.ts` → `REFRAME_BULLETS`, `EXTRA_VALUE_ITEMS`, `getBonusTitle/Desc` |
+| Países bloqueados | env `BLOCKED_COUNTRIES=BR,VE` |
 | Claves de localStorage | `lib/constants.ts` → `STORAGE_KEYS` |
-| Lógica de diagnóstico / IMC | `lib/quiz-v2/helpers.ts` |
 
-> Para reutilizar el funnel con otro nicho, los 3 archivos que definen la temática son
-> `config.ts` + `localization.ts` + `data.ts`. El resto es infraestructura genérica.
 
-## Convenciones de nombres
-
-Para mantener el código consistente y reutilizable:
-
-- **Componentes y tipos:** `PascalCase` (ej: `SlideSalesPage`, `QuizAnswers`, `DiagnosisResult`).
-- **Variables y funciones:** `camelCase` (ej: `calcularDiagnostico`, `secondsLeft`).
-- **Constantes exportadas / config:** `UPPER_SNAKE_CASE` (ej: `QUIZ_RESULT_TYPE_NAMES`, `CHECKOUT_URL`, `STORAGE_KEYS`).
-- **Identificadores genéricos sobre específicos del nicho:** las constantes y tipos del código usan nombres genéricos de quiz (ej: `QUIZ_RESULT_TYPE_NAMES`) en vez de nombres atados a la temática. Así, cambiar el nicho no obliga a renombrar identificadores en todo el repo — sólo se cambian los **valores** en la config.
-- **El texto que ve el usuario** (copy de la sales page, FAQ, testimonios) sí menciona la temática real del producto y vive como **datos** en `config.ts` / `localization.ts`, no hardcodeado en los componentes.
-
-## Quiz funnel — flujo de slides
-
-```
-0.  Landing hook (método del agua de arroz + autoridad)
-1.  Edad (slider)
-2.  Tipo de cuerpo (grid 2x2)
-3.  Dónde acumula grasa (single)
-4.  Noticia viral (mockup Infobae)
-5.  Nombre
-6.  Cómo afecta la panza (personalizado con nombre)
-7.  Probaste antes sin resultado
-8.  Qué te impide (multi)
-9.  "No es tu culpa" (validación emocional)
-10. Qué querés lograr (multi)
-11. Peso actual (slider)
-12. Altura (slider)
-13. Peso ideal (slider con límites dinámicos: default = actual−10, min = actual−30, max = actual; muestra "Querés bajar X kg")
-14. Embarazos
-15. Rutina diaria
-16. Horas de sueño
-17. Agua por día
-18. Expert bridge ("Tu diagnóstico personalizado" — Lic. Natalia Reyes MN 9283 + credenciales)
-19. Diagnóstico (3 barras con descripción + pill de riesgo + burbuja de urgencia)
-20. Loading (pasos con checks animados)
-21. Sales page (informe personalizado + proyección de peso + precio $6.000 ARS, countdown 15 min, garantía)
-```
-
-### Detalles de slides clave
-
-- **13 · Peso ideal** (`SlideNumberSlider`): los límites se calculan según el peso
-  actual ya ingresado — `max = peso actual`, `min = peso actual − 30` (piso 40),
-  `default = peso actual − 10`. Debajo del número muestra _"Querés bajar X kg —
-  ¡Es totalmente alcanzable con tu plan personalizado!"_.
-- **18 · Expert bridge** (`SlideExpertBridge`): encabezado "Tu diagnóstico
-  personalizado", atribuye el plan a la Lic. Natalia Reyes (creadora del Método
-  del Agua de Arroz) e incluye credenciales académicas (UBA / SAN / posgrado
-  Barcelona, como copy de marca). CTA: "Generar mi diagnóstico personalizado".
-- **19 · Diagnóstico** (`SlideDiagnosisResult`): pill "⚠️ Diagnóstico Finalizado",
-  **descripción debajo de cada barra** (qué significa cada %) y **una única
-  burbuja de urgencia** ("estado de emergencia… 100% reversible") antes del CTA.
-- **21 · Sales page** (`SlideSalesPageV3`): debajo de "Basado en tu perfil
-  digestivo" va el **Informe personalizado** (diagnóstico inicial en bullets +
-  recomendaciones dinámicas + cierre firmado por la Lic.), y después la
-  **proyección de peso** (imagen before-after arriba del peso, sin bloque de IMC).
-  El countdown es de **15 minutos**.
-
-## Diagnóstico
-
-3 métricas calculadas dinámicamente en `lib/quiz-v2/helpers.ts`:
-- **Nivel de Inflamación** (62-97%) — basado en tipo cuerpo, zona, obstáculos, sueño, agua
-- **Riesgo de Acumulación** (55-95%) — basado en rutina, embarazos, tipo cuerpo
-- **Eficiencia Metabólica** (8-35%) — basado en sueño, agua, rutina, tipo cuerpo
-
-Siempre genera valores "dramáticos" para cualquier respuesta realista del target.
-Cada barra muestra una **descripción** personalizada (helper `getBarDescriptions`)
-y el slide cierra con una **burbuja de urgencia** (`getDiagnosisUrgency`).
-
-El **informe personalizado** de la sales page se arma con `getInformeResumen`
-(diagnóstico inicial en bullets) y `getRecomendaciones` (recomendaciones dinámicas
-según objetivo, sueño, tiempo y agua).
-
-Los 4 **tipos de resultado** (`QUIZ_RESULT_TYPE_NAMES` en `config.ts`) se derivan del nivel de inflamación.
-
-## Estética
-
-- **Paleta:** Terracota (#C0553A) + peach (#FFF5F0) + blanco cálido (#FFFAF7)
-- **Fonts:** DM Serif Display (headlines) + Plus Jakarta Sans (body)
-- **Vibe:** Femenino, cálido, cercano, salud accesible
-
-## Integraciones externas (no se renombran)
-
-Estos identificadores son contratos con servicios externos. Cambiarlos rompe el matching/reporting, así que **se mantienen tal cual** aunque mencionen la temática:
-
-- **Meta (Pixel + CAPI):** nombres de eventos, `content_name`, `content_category`. Definidos en los componentes y en `lib/tracking.ts`.
-- **Supabase:** nombres de tablas (`clientes`, `purchases`) y columnas (incluida `tipo_hinchazon` y `hotmart_transaction`, que para Shopify guarda `shopify_<order.id>`).
-- **Shopify:** firma de los webhooks (`X-Shopify-Hmac-Sha256`), topic `orders/paid`, campos del payload (`email`, `line_items`, `total_price`) y el secret de firma.
-- **Hotmart (legacy):** campos de los webhooks (`hottok`, `product_id`, etc.).
-- **Variables de entorno:** los nombres de las env vars (`NEXT_PUBLIC_*`, etc.).
-
-## Variables de entorno
-
-Ver `.env.local.example` para la lista completa y comentada. Las principales:
-
-```env
-# Tracking
-NEXT_PUBLIC_META_PIXEL_ID=          # Meta Pixel ID (client-side)
-META_PIXEL_ID=                      # Meta Pixel ID (server-side, sin NEXT_PUBLIC)
-META_CAPI_TOKEN=                    # Meta CAPI access token
-
-# Checkout / funnel (Shopify)
-NEXT_PUBLIC_CHECKOUT_URL=                # Permalink de carrito Shopify (front)
-NEXT_PUBLIC_UPSELL_CHECKOUT_URL=         # Permalink de carrito Shopify (upsell)
-NEXT_PUBLIC_DOWNSELL_CHECKOUT_URL=       # Permalink de carrito Shopify (downsell)
-NEXT_PUBLIC_PWA_BASE_URL=                # Base de la PWA (a donde va el "no gracias")
-SHOPIFY_WEBHOOK_SECRETS=                 # Secret(s) HMAC del webhook (coma-separados = multi-tienda)
-# Legacy (fallback): NEXT_PUBLIC_HOTMART_CHECKOUT_URL, NEXT_PUBLIC_HOTMART_UPSELL_CHECKOUT_URL,
-#                    NEXT_PUBLIC_HOTMART_DOWNSELL_CHECKOUT_URL, HOTMART_HOTTOK
-
-# Admin
-ADMIN_PASSWORD=                     # Password panel admin
-FUNNEL_STORE=supabase               # memory | supabase
-
-# PWA
-NEXT_PUBLIC_PWA_TEST_MODE=true      # true = sin Supabase (dev)
-PWA_SESSION_SECRET=                 # HMAC de la sesión PWA (prod)
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-
-# Emails (Resend)
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=
-NEXT_PUBLIC_SITE_URL=
-```
-
-## Imágenes necesarias
+## 🎨 Imágenes necesarias
 
 Todas en `/public/img/`:
 
 | Archivo | Qué es |
 |---|---|
-| `natalia-reyes.jpg` | Foto nutricionista (800×800, cuadrado) |
-| `noticia-viral.jpg` | Screenshot real de Infobae, vertical (se muestra completo, sin recortar) |
-| `landing-hook.jpg` | Hero infográfica agua de arroz + beneficios (800×500) |
-| `before-after.png` | Antes/después (hinchada → panza plana). Se muestra en la proyección de la sales page |
-| `body-en-forma.png` | Tipo de cuerpo — emoji 3D femenino, mismo personaje, 1:1 (slide 2) |
-| `body-unos-kilos.png` | Tipo de cuerpo — emoji 3D femenino, mismo personaje, 1:1 (slide 2) |
-| `body-sobrepeso.png` | Tipo de cuerpo — emoji 3D femenino, mismo personaje, 1:1 (slide 2) |
-| `body-plus-size.png` | Tipo de cuerpo — emoji 3D femenino, mismo personaje, 1:1 (slide 2) |
+| `natalia-reyes.jpg` | Foto nutricionista (800×800 cuadrado) |
+| `noticia-viral-{cl,co,mx,pe,us}.jpg` | Screenshot del periódico local por país (900×1342 vertical). Ver `public/img/NOTICIA-VIRAL-README.md` |
+| `landing-cover.png` | Hero del slide 0 |
+| `landing-hook.jpg` | Hero infográfica agua de arroz |
+| `before-after.png` | Antes/después (sales page) |
+| `body-en-forma.png`, `body-unos-kilos.png`, `body-sobrepeso.png`, `body-plus-size.png` | Tipos de cuerpo (slide 2) |
 
-## Desarrollo local
+
+## 🛠️ Comandos
 
 ```bash
-npm install
-cp .env.local.example .env.local  # completar variables
-npm run dev      # servidor de desarrollo
-npm run build    # build de producción (incluye type-check)
-npm start        # servir el build
+npm run dev      # Servidor de desarrollo
+npm run build    # Build de producción (incluye type-check)
+npm start        # Servir el build
 ```
 
-> Nota: `npm run lint` es interactivo porque no hay un `.eslintrc` commiteado.
 > El type-check de `next build` valida los tipos y es la fuente de verdad de CI.
 
-## Deploy
+
+## 🚀 Deploy
 
 Push a `main` → Vercel autodeploy.
 
-## Changelog
+**Antes del primer deploy en producción:**
 
-### Migración a Shopify + mejoras del quiz (actual)
-
-- **Cobro Hotmart → Shopify** (Mercado Pago, ARS). Nuevo `app/api/shopify-webhook`
-  (valida HMAC `X-Shopify-Hmac-Sha256`, escribe `purchases`, dispara `Purchase` a
-  Meta CAPI). Las env vars de checkout pasan a ser provider-neutral
-  (`NEXT_PUBLIC_CHECKOUT_URL`, etc.) con fallback legacy a las `NEXT_PUBLIC_HOTMART_*`.
-- **Precios:** upsell **$19.900**, downsell **$12.900** (front $6.000).
-- **`/upsell` y `/downsell`** ya no usan iframe: **redirigen** al checkout de
-  Shopify (no permite embed).
-- **Acceso PWA sin tiers:** cualquier compra aprobada habilita acceso completo
-  (`lib/pwa/access.ts`).
-- **Migración `supabase/migrations/003_create_purchases.sql`** (idempotente).
-- Se quitaron Systeme.io y Resend del flujo post-compra (el acceso lo entrega el
-  email nativo de Shopify).
-
-**Ajustes del quiz**
-- `viral_news`: muestra el **screenshot real de Infobae** completo (antes lo
-  recortaba y reconstruía la nota).
-- Slide **peso ideal** con límites dinámicos (default actual−10, min actual−30,
-  max actual) + texto "Querés bajar X kg".
-- **Expert bridge** con encabezado "Tu diagnóstico personalizado" + credenciales.
-- **Diagnóstico** con pill de riesgo, descripción por barra y burbuja de urgencia
-  (una sola).
-- **Sales page**: informe personalizado (bullets + recomendaciones dinámicas +
-  cierre firmado) debajo de "Basado en tu perfil"; proyección con imagen
-  before-after arriba del peso y **sin bloque de IMC**; countdown **15 min**;
-  fix de copy ("analicé").
-- Fixes menores: emoji de "Espalda" en `donde_acumula`, y se quitó el ✅
-  redundante del loading.
-
-### Refactor de mantenibilidad (previo)
-
-Centralizó el contenido del funnel y eliminó duplicación, para que un cambio de
-temática/marca no obligue a tocar muchos archivos:
-
-- **`lib/constants.ts`** — `STORAGE_KEYS` como fuente única de las claves de
-  localStorage (`quizState`, `utm`). Se conservan los valores de string históricos
-  para no invalidar el estado ya persistido en navegadores reales.
-- **`lib/quiz-v2/config.ts`** — `QUIZ_RESULT_TYPE_NAMES` como única definición de
-  los 4 tipos de resultado (`TIPO_NOMBRES` queda como alias `@deprecated`).
-- **De-duplicación** del mapa de tipos que estaba copiado en 4 lugares.
-- **Claves de localStorage centralizadas** en `cookies.ts`, `store.ts` y las sales pages.
-
-| Antes (identificador en código) | Ahora |
-|---|---|
-| `TIPO_NOMBRES` (definido 4 veces) | `QUIZ_RESULT_TYPE_NAMES` (1 sola definición; `TIPO_NOMBRES` = alias deprecado) |
-| `TIPOS_HINCHAZON` (código muerto) | eliminado |
-| `'agua-arroz-quiz-v3'` (hardcodeado) | `STORAGE_KEYS.quizState` |
-| `'anti-hinchazon-utms'` (hardcodeado en 3 lugares) | `STORAGE_KEYS.utm` |
+1. Crear el proyecto en Supabase y correr `supabase/setup.sql` en su SQL Editor.
+2. Crear el producto, upsell y downsell en Hotmart. Copiar las 3 URLs.
+3. Configurar el webhook en Hotmart apuntando a `/api/hotmart-webhook` y
+   copiar el `HOTTOK`.
+4. Configurar el Pixel de Meta y generar el token de CAPI.
+5. Cargar todas las env vars de `.env.local.example` en Vercel.
+6. (Opcional) Subir las imágenes de noticia viral por país.

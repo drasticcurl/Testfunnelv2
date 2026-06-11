@@ -272,12 +272,13 @@ export function formatNumber(n: number | null | undefined): string {
   return n.toLocaleString('es-AR');
 }
 
-export function formatMoney(amount: number, currency: string = 'ARS'): string {
-  const isARS = currency.toUpperCase() === 'ARS';
+export function formatMoney(amount: number, currency: string = 'USD'): string {
+  const upper = currency.toUpperCase();
+  const isARS = upper === 'ARS';
   try {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
-      currency: currency.toUpperCase(),
+      currency: upper,
       minimumFractionDigits: isARS ? 0 : 2,
       maximumFractionDigits: isARS ? 0 : 2,
     }).format(amount);

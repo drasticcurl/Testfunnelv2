@@ -40,6 +40,7 @@ export function LeadsView() {
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadsError, setLeadsError] = useState<string | null>(null);
   const [sinceDate, setSinceDate] = useState<string>('');
+  const [countryFilter, setCountryFilter] = useState<string>('all');
   const [downloading, setDownloading] = useState(false);
 
   const fetchLeadsStats = useCallback(async () => {
@@ -66,6 +67,7 @@ export function LeadsView() {
     try {
       const params = new URLSearchParams();
       if (sinceDate) params.set('since', sinceDate);
+      if (countryFilter && countryFilter !== 'all') params.set('country', countryFilter);
       params.set('onlyNonBuyers', onlyNonBuyers ? 'true' : 'false');
       const res = await fetch(`/api/admin/leads-export?${params.toString()}`, { cache: 'no-store', credentials: 'same-origin' });
       if (res.status === 401) { window.location.href = '/admin'; return; }
@@ -93,7 +95,7 @@ export function LeadsView() {
     } finally {
       setDownloading(false);
     }
-  }, [sinceDate]);
+  }, [sinceDate, countryFilter]);
 
   return (
     <div className="space-y-5">
@@ -147,21 +149,40 @@ export function LeadsView() {
         />
       </section>
 
-      {/* Filtro fecha + acciones */}
-      <SectionCard title="Exportar CSV" subtitle="Para subir a Shopify → Clientes → Importar.">
+      {/* Filtro fecha + país + acciones */}
+      <SectionCard title="Exportar CSV" subtitle="Para subir a tu CRM (formato compatible con Shopify Customer Import).">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <label className="block">
-            <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-300">
-              <CalendarBlank size={14} weight="bold" /> Desde fecha (opcional)
-            </span>
-            <input
-              type="date"
-              value={sinceDate}
-              onChange={(e) => setSinceDate(e.target.value)}
-              className="mt-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-neutral-100 [color-scheme:dark] focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-            />
-            <span className="mt-1 block text-[11px] text-neutral-600">Vacío = todos los leads históricos.</span>
-          </label>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="block">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-neutral-300">
+                <CalendarBlank size={14} weight="bold" /> Desde fecha (opcional)
+              </span>
+              <input
+                type="date"
+                value={sinceDate}
+                onChange={(e) => setSinceDate(e.target.value)}
+                className="mt-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-neutral-100 [color-scheme:dark] focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+              />
+              <span className="mt-1 block text-[11px] text-neutral-600">Vacío = todos los leads históricos.</span>
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-medium text-neutral-300">País</span>
+              <select
+                value={countryFilter}
+                onChange={(e) => setCountryFilter(e.target.value)}
+                className="mt-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-neutral-100 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+              >
+                <option value="all" className="bg-[#13131a]">🌎 Todos</option>
+                <option value="CL" className="bg-[#13131a]">🇨🇱 Chile</option>
+                <option value="CO" className="bg-[#13131a]">🇨🇴 Colombia</option>
+                <option value="MX" className="bg-[#13131a]">🇲🇽 México</option>
+                <option value="PE" className="bg-[#13131a]">🇵🇪 Perú</option>
+                <option value="US" className="bg-[#13131a]">🇺🇸 EE.UU.</option>
+              </select>
+              <span className="mt-1 block text-[11px] text-neutral-600">Filtra el CSV por país detectado.</span>
+            </label>
+          </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Button onClick={() => downloadCsv(true)} disabled={downloading} variant="primary">

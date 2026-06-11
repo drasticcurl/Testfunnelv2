@@ -3,19 +3,21 @@
  *
  *  0) Geo-block: bloquea el tráfico de países no deseados (por defecto Brasil).
  *     - Se aplica a las páginas (quiz, pwa, etc.), NO a las rutas /api/*
- *       (para no romper webhooks de Shopify/Hotmart ni el tracking, que pueden
+ *       (para no romper el webhook de Hotmart ni el tracking, que pueden
  *       venir de cualquier infraestructura).
- *     - Configurable con la env var BLOCKED_COUNTRIES (códigos ISO separados por
- *       coma, ej: "BR,VE"). Default: "BR".
- *     - Usa la geolocalización que Vercel inyecta en req.geo. En local req.geo
- *       no existe, así que no bloquea nada (dev sigue funcionando normal).
+ *     - Configurable con la env var BLOCKED_COUNTRIES (códigos ISO separados
+ *       por coma, ej: "BR,VE"). Default: "BR".
+ *     - Usa la geolocalización que Vercel inyecta en req.geo. En local
+ *       req.geo no existe, así que no bloquea nada (dev sigue funcionando).
  *
- *  1) Redirige / → /quiz (simple, sin A/B).
+ *  1) Redirige `/` → `/quiz`. El quiz auto-detecta el país por geo-IP.
+ *     Para campañas con país conocido se usan las rutas SEO (`/chile`,
+ *     `/colombia`, `/mexico`, `/peru`, `/usa`).
  *
  *  2) Guard de la PWA (`/pwa/<sub-rutas>`):
  *     - Si NO hay cookie `pwa_session` válida y NO está activo el test mode,
- *       redirige a /pwa/login.
- *     - SOLO se aplica a rutas internas de la PWA (`/pwa/dashboard`, etc).
+ *       redirige a `/pwa/login`.
+ *     - SOLO se aplica a rutas internas de la PWA.
  *     - Excluye explícitamente:
  *         · cualquier path con extensión (.js, .json, .png, .ico, etc.)
  *         · /pwa/login y /pwa/auth/*
@@ -71,7 +73,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
   // ─── 0) Geo-block (países no deseados, ej: Brasil) ─────────────
-  // No se aplica a /api/* para no romper webhooks (Shopify/Hotmart) ni tracking.
+  // No se aplica a /api/* para no romper el webhook de Hotmart ni tracking.
   if (!pathname.startsWith('/api/') && isBlockedCountry(req)) {
     return new NextResponse('Not available in your region.', {
       status: 451, // 451 Unavailable For Legal Reasons (semánticamente correcto)
@@ -86,14 +88,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(url);
   }
 
-  // ─── 2) Redirect legacy routes ─────────────────────────────────
-  if (pathname === '/quiz-v2' || pathname === '/quiz-v3') {
-    const url = req.nextUrl.clone();
-    url.pathname = '/quiz';
-    return NextResponse.redirect(url, 301);
-  }
-
-  // ─── 3) PWA guard ───────────────────────────────────────────────
+  // ─── 2) PWA guard ───────────────────────────────────────────────
   if (pathRequiresPwaSession(pathname) && !isTestModeEdge()) {
     const token = req.cookies.get(SESSION_COOKIE)?.value;
     const session = await verifySessionEdge(token);

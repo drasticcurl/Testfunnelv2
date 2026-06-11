@@ -12,8 +12,8 @@
  *
  * Precios: lib/quiz-v2/config.ts → PRICING (fuente única de verdad).
  *
- * Purchase NO se dispara acá: lo hace el webhook /api/shopify-webhook
- * server-side al recibir orders/paid.
+ * Purchase NO se dispara acá: lo hace el webhook /api/hotmart-webhook
+ * server-side al recibir PURCHASE_APPROVED.
  */
 
 import { DownsellOffer } from '@/components/upsell/DownsellOffer';

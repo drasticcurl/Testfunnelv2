@@ -1,39 +1,37 @@
 /**
- * @file localization.ts — Localizacion por pais para el quiz funnel V2.
+ * @file localization.ts — Localización por país para el quiz funnel V2.
  *
- * PARA REUTILIZAR:
- * Este archivo contiene TODOS los textos y precios por pais. Para adaptar
- * el funnel a tu nicho:
+ * Países soportados: CL, CO, MX, PE, US. Argentina (AR) y Brasil (BR) NO
+ * están: Argentina ya no se vende desde este proyecto, y Brasil queda
+ * bloqueado a nivel middleware.
  *
- *  1. PRECIOS (PRICING_BY_COUNTRY):
- *     Cambia los precios de cada plan en cada pais. Manten la estructura
- *     de 3 planes (o ajusta si tu producto tiene otros). El pricing se
- *     muestra en la sales page automaticamente.
+ * Moneda: USD para los 5 países. El producto es un único "info-product"
+ * de Hotmart cobrado en dólares (Hotmart hace la conversión local en el
+ * checkout según el país detectado en su lado).
  *
- *  2. TEXTOS (TEXTS_BY_COUNTRY):
- *     Cambia headlines, CTAs, FAQ, testimonios, weekly highlights.
- *     Cada pais puede tener su propio tono (vos/tu/usted).
+ * Imagen de prueba social (newspaper) por país: cada país muestra una nota
+ * de prensa simulando un periódico local. La ruta de la imagen sale de
+ * `socialProofImage` y vive en `/public/img/noticia-viral-{cc}.jpg` —
+ * el slug es el código de país en minúscula (ver SlideViralNews).
  *
- *  3. QUIZ OVERRIDES (QUIZ_OVERRIDES):
- *     Si una pregunta se dice distinto en otro pais (ej: "panza" vs "barriga"
- *     vs "guata"), agrega un override. El componente hace merge automatico.
- *
- *  4. AGREGAR UN PAIS NUEVO:
- *     a. Agrega el codigo al type CountryCode (ej: 'EC')
- *     b. Agrega entrada en PRICING_BY_COUNTRY
- *     c. Agrega texto base en TEXTS_BY_COUNTRY (podes copiar CO y ajustar)
- *     d. Agrega overrides en QUIZ_OVERRIDES si hay diferencias
- *     e. Agrega en SOCIAL_PROOF_OVERRIDES
- *     f. Agrega el codigo en isValidCountry()
- *
- * Paises soportados: AR, CO, PE, MX, CL
+ * PARA AGREGAR UN PAÍS NUEVO:
+ *   1. Agregar el código al type `CountryCode`.
+ *   2. Agregar entrada en `PRICING_BY_COUNTRY` (puede ser un alias del USD base).
+ *   3. Agregar entrada en `TEXTS_BY_COUNTRY` (copiar uno parecido y ajustar).
+ *   4. Agregar entrada en `QUIZ_OVERRIDES` (overrides puntuales — el resto cae
+ *      al base del quiz).
+ *   5. Agregar entrada en `SOCIAL_PROOF_OVERRIDES` con la `socialProofImage`.
+ *   6. Sumar el código al CHECK de `country` en `supabase/setup.sql` y al
+ *     `isValidCountry()` de abajo.
+ *   7. Crear la ruta SEO en `app/{slug}/page.tsx` (ver app/chile/page.tsx).
+ *   8. Subir la imagen del periódico a `/public/img/noticia-viral-{cc}.jpg`.
  */
 
-export type CountryCode = 'AR' | 'CO' | 'PE' | 'MX' | 'CL';
+export type CountryCode = 'CL' | 'CO' | 'MX' | 'PE' | 'US';
 
 export interface CountryPricing {
-  currency: string;
-  symbol: string;
+  currency: string;       // ISO 4217 (siempre 'USD' por ahora).
+  symbol: string;         // Glyph para mostrar (ej: '$', 'US$').
   plans: {
     '1sem': { price: string; originalPrice: string; perDay: string };
     '4sem': { price: string; originalPrice: string; perDay: string };
@@ -79,257 +77,55 @@ export interface CountryTexts {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PRECIOS POR PAÍS
+// PRECIOS POR PAÍS — TODOS EN USD (un solo producto Hotmart en dólares)
 // ═══════════════════════════════════════════════════════════════════════════
+//
+// Como es un solo producto en USD, los 5 países comparten EXACTAMENTE los
+// mismos precios. Mantenemos la estructura por país por si en el futuro
+// querés diferenciarlos (precio promocional para un mercado, por ejemplo).
+//
+// La estructura conserva 3 planes (1sem/4sem/8sem) por compatibilidad con el
+// código actual; el funnel solo usa el plan `1sem` en la sales page (front).
+// El upsell/downsell tienen sus propios precios (ver lib/quiz-v2/config.ts →
+// PRICING).
+
+const USD_PRICING: CountryPricing = {
+  currency: 'USD',
+  symbol: 'US$',
+  plans: {
+    '1sem': { price: 'US$19', originalPrice: 'US$49',  perDay: 'US$2.71/día' },
+    '4sem': { price: 'US$39', originalPrice: 'US$99',  perDay: 'US$1.30/día' },
+    '8sem': { price: 'US$59', originalPrice: 'US$149', perDay: 'US$0.98/día' },
+  },
+  valueStack: {
+    protocolo:  'US$59',
+    recetas:    'US$39',
+    kitExpress: 'US$19',
+    diario:     'US$29',
+    totalValue: 'US$146',
+  },
+  comparison: {
+    nutricionista: 'US$80–150/mes',
+    gastro:        'US$200 consulta',
+    protocolo:     'desde US$0.98/día',
+  },
+};
 
 export const PRICING_BY_COUNTRY: Record<CountryCode, CountryPricing> = {
-  AR: {
-    currency: 'ARS',
-    symbol: '$',
-    plans: {
-      '1sem': { price: '$9.900', originalPrice: '$27.500', perDay: '$1.414/día' },
-      '4sem': { price: '$19.900', originalPrice: '$55.000', perDay: '$710/día' },
-      '8sem': { price: '$29.900', originalPrice: '$82.500', perDay: '$535/día' },
-    },
-    valueStack: {
-      protocolo: '$25.000',
-      recetas: '$15.000',
-      kitExpress: '$8.000',
-      diario: '$10.000',
-      totalValue: '$58.000',
-    },
-    comparison: {
-      nutricionista: '$30.000–60.000/mes',
-      gastro: '$45.000 consulta',
-      protocolo: 'desde $535/día',
-    },
-  },
-  CO: {
-    currency: 'COP',
-    symbol: '$',
-    plans: {
-      '1sem': { price: '$29.900', originalPrice: '$89.900', perDay: '$4.271/día' },
-      '4sem': { price: '$59.900', originalPrice: '$179.900', perDay: '$2.139/día' },
-      '8sem': { price: '$89.900', originalPrice: '$269.900', perDay: '$1.605/día' },
-    },
-    valueStack: {
-      protocolo: '$79.900',
-      recetas: '$49.900',
-      kitExpress: '$29.900',
-      diario: '$39.900',
-      totalValue: '$199.600',
-    },
-    comparison: {
-      nutricionista: '$150.000–300.000/mes',
-      gastro: '$200.000 consulta',
-      protocolo: 'desde $4.271/día',
-    },
-  },
-  PE: {
-    currency: 'PEN',
-    symbol: 'S/',
-    plans: {
-      '1sem': { price: 'S/29', originalPrice: 'S/79', perDay: 'S/4.14/día' },
-      '4sem': { price: 'S/49', originalPrice: 'S/139', perDay: 'S/1.75/día' },
-      '8sem': { price: 'S/69', originalPrice: 'S/199', perDay: 'S/1.23/día' },
-    },
-    valueStack: {
-      protocolo: 'S/59',
-      recetas: 'S/39',
-      kitExpress: 'S/19',
-      diario: 'S/29',
-      totalValue: 'S/146',
-    },
-    comparison: {
-      nutricionista: 'S/150–300/mes',
-      gastro: 'S/200 consulta',
-      protocolo: 'desde S/1.23/día',
-    },
-  },
-  MX: {
-    currency: 'MXN',
-    symbol: '$',
-    plans: {
-      '1sem': { price: '$149', originalPrice: '$449', perDay: '$21/día' },
-      '4sem': { price: '$299', originalPrice: '$899', perDay: '$10.68/día' },
-      '8sem': { price: '$449', originalPrice: '$1,349', perDay: '$8.02/día' },
-    },
-    valueStack: {
-      protocolo: '$399',
-      recetas: '$249',
-      kitExpress: '$149',
-      diario: '$199',
-      totalValue: '$996',
-    },
-    comparison: {
-      nutricionista: '$1,500–3,000/mes',
-      gastro: '$2,000 consulta',
-      protocolo: 'desde $8.02/día',
-    },
-  },
-  CL: {
-    currency: 'CLP',
-    symbol: '$',
-    plans: {
-      '1sem': { price: '$6.990', originalPrice: '$19.990', perDay: '$999/día' },
-      '4sem': { price: '$12.990', originalPrice: '$39.990', perDay: '$464/día' },
-      '8sem': { price: '$18.990', originalPrice: '$56.990', perDay: '$339/día' },
-    },
-    valueStack: {
-      protocolo: '$14.990',
-      recetas: '$9.990',
-      kitExpress: '$4.990',
-      diario: '$6.990',
-      totalValue: '$36.960',
-    },
-    comparison: {
-      nutricionista: '$40.000–80.000/mes',
-      gastro: '$50.000 consulta',
-      protocolo: 'desde $339/día',
-    },
-  },
+  CL: USD_PRICING,
+  CO: USD_PRICING,
+  MX: USD_PRICING,
+  PE: USD_PRICING,
+  US: USD_PRICING,
 };
 
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TEXTOS POR PAÍS
+// Español neutro variando algunos modismos (panza/barriga/guata/pancita) y
+// los métodos de pago disponibles. US arranca como "neutro" porque la
+// audiencia objetivo son hispanohablantes en EE.UU.
 // ═══════════════════════════════════════════════════════════════════════════
-
-const TEXTS_AR: CountryTexts = {
-  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshinchá tu panza en 7 días!`,
-  socialProofCount: '237 mujeres esta semana',
-  socialProofText: 'empezaron el protocolo para',
-  reframeTitle: 'No es falta de voluntad. Es inflamación.',
-  reframeBody: 'Tu hinchazón no es porque "comés mal". Es una respuesta inflamatoria a alimentos que creés saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
-  ctaButton: 'OBTENER MI PLAN →',
-  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
-  finalCtaSubtext: 'Aprovechá el 64% de descuento antes de que expire.',
-  guaranteeText: 'Tenés 7 días para probarlo. Si no ves resultados, te devolvemos la plata sin preguntas. Un email y listo.',
-  choosePlanTitle: 'Elegí tu plan',
-  weeklyHighlights: [
-    { week: 1, title: 'Limpieza intestinal', desc: 'Eliminá los 7 alimentos que te inflaman sin saberlo' },
-    { week: 2, title: 'Sentite liviana', desc: 'Restaurá tu microbiota con el protocolo antiinflamatorio' },
-    { week: 3, title: 'Panza plana', desc: 'Reincorporá alimentos seguros y consolidá resultados' },
-    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
-  ],
-  faqItems: [
-    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, podés ajustar preferencias dentro de la app.' },
-    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibís acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitás descargar nada del App Store.' },
-    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empezás con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
-    { q: '¿Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
-  ],
-  testimonials: [
-    { quote: 'Al día 4 se me deshinchó la panza. No lo podía creer.', author: 'Anabela', age: 41 },
-    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Verónica', age: 51 },
-    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Lucía', age: 38 },
-  ],
-  discountText: (time) => `🔥 64% descuento por ${time}`,
-  paymentBadges: '💳 Visa · Mastercard · Amex',
-  securityBadge: '🔒 Pago seguro SSL',
-};
-
-
-const TEXTS_CO: CountryTexts = {
-  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu barriga en 7 días!`,
-  socialProofCount: '237 mujeres esta semana',
-  socialProofText: 'empezaron el protocolo para',
-  reframeTitle: 'No es falta de voluntad. Es inflamación.',
-  reframeBody: 'Tu hinchazón no es porque "comes mal". Es una respuesta inflamatoria a alimentos que crees saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
-  ctaButton: 'OBTENER MI PLAN →',
-  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
-  finalCtaSubtext: 'Aprovecha el 64% de descuento antes de que expire.',
-  guaranteeText: 'Tienes 7 días para probarlo. Si no ves resultados, te devolvemos la plata sin preguntas. Un email y listo.',
-  choosePlanTitle: 'Elige tu plan',
-  weeklyHighlights: [
-    { week: 1, title: 'Limpieza intestinal', desc: 'Elimina los 7 alimentos que te inflaman sin que lo sepas' },
-    { week: 2, title: 'Siéntete liviana', desc: 'Restaura tu microbiota con el protocolo antiinflamatorio' },
-    { week: 3, title: 'Barriga plana', desc: 'Reincorpora alimentos seguros y consolida resultados' },
-    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
-  ],
-  faqItems: [
-    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
-    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
-    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
-    { q: '¿Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
-  ],
-  testimonials: [
-    { quote: 'Al día 4 se me deshinchó la barriga. ¡No lo podía creer!', author: 'Catalina', age: 39 },
-    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Valentina', age: 45 },
-    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Daniela', age: 36 },
-  ],
-  discountText: (time) => `🔥 64% de descuento por ${time}`,
-  paymentBadges: '💳 Visa · Mastercard · PSE',
-  securityBadge: '🔒 Pago seguro SSL',
-};
-
-
-const TEXTS_PE: CountryTexts = {
-  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu barriga en 7 días!`,
-  socialProofCount: '237 mujeres esta semana',
-  socialProofText: 'empezaron el protocolo para',
-  reframeTitle: 'No es falta de voluntad. Es inflamación.',
-  reframeBody: 'Tu hinchazón no es porque "comes mal". Es una respuesta inflamatoria a alimentos que crees saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
-  ctaButton: 'OBTENER MI PLAN →',
-  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
-  finalCtaSubtext: 'Aprovecha el 64% de descuento antes de que expire.',
-  guaranteeText: 'Tienes 7 días para probarlo. Si no ves resultados, te devolvemos tu dinero sin preguntas. Un email y listo.',
-  choosePlanTitle: 'Elige tu plan',
-  weeklyHighlights: [
-    { week: 1, title: 'Limpieza intestinal', desc: 'Elimina los 7 alimentos que te inflaman sin que lo sepas' },
-    { week: 2, title: 'Siéntete liviana', desc: 'Restaura tu microbiota con el protocolo antiinflamatorio' },
-    { week: 3, title: 'Barriga plana', desc: 'Reincorpora alimentos seguros y consolida resultados' },
-    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
-  ],
-  faqItems: [
-    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
-    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
-    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
-    { q: '¿Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
-  ],
-  testimonials: [
-    { quote: 'Al día 4 se me deshinchó la barriga. ¡No lo podía creer!', author: 'Milagros', age: 37 },
-    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Claudia', age: 43 },
-    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Jimena', age: 35 },
-  ],
-  discountText: (time) => `🔥 64% de descuento por ${time}`,
-  paymentBadges: '💳 Visa · Mastercard · Yape',
-  securityBadge: '🔒 Pago seguro SSL',
-};
-
-
-const TEXTS_MX: CountryTexts = {
-  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu pancita en 7 días!`,
-  socialProofCount: '237 mujeres esta semana',
-  socialProofText: 'empezaron el protocolo para',
-  reframeTitle: 'No es falta de voluntad. Es inflamación.',
-  reframeBody: 'Tu hinchazón no es porque "comes mal". Es una respuesta inflamatoria a alimentos que crees saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
-  ctaButton: 'OBTENER MI PLAN →',
-  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
-  finalCtaSubtext: 'Aprovecha el 64% de descuento antes de que expire.',
-  guaranteeText: 'Tienes 7 días para probarlo. Si no ves resultados, te devolvemos tu dinero sin preguntas. Un email y listo.',
-  choosePlanTitle: 'Elige tu plan',
-  weeklyHighlights: [
-    { week: 1, title: 'Limpieza intestinal', desc: 'Elimina los 7 alimentos que te inflaman sin que lo sepas' },
-    { week: 2, title: 'Siéntete ligera', desc: 'Restaura tu microbiota con el protocolo antiinflamatorio' },
-    { week: 3, title: 'Pancita plana', desc: 'Reincorpora alimentos seguros y consolida resultados' },
-    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
-  ],
-  faqItems: [
-    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
-    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
-    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
-    { q: '¿Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
-  ],
-  testimonials: [
-    { quote: 'Al día 4 se me deshinchó la pancita. ¡No lo podía creer!', author: 'Fernanda', age: 40 },
-    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Alejandra', age: 47 },
-    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Karla', age: 34 },
-  ],
-  discountText: (time) => `🔥 64% de descuento por ${time}`,
-  paymentBadges: '💳 Visa · Mastercard · OXXO',
-  securityBadge: '🔒 Pago seguro SSL',
-};
-
 
 const TEXTS_CL: CountryTexts = {
   heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu guata en 7 días!`,
@@ -352,7 +148,7 @@ const TEXTS_CL: CountryTexts = {
     { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
     { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
     { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
-    { q: '¿Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
+    { q: 'Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
   ],
   testimonials: [
     { quote: 'Al día 4 se me deshinchó la guata. ¡No lo podía creer!', author: 'Constanza', age: 38 },
@@ -360,22 +156,157 @@ const TEXTS_CL: CountryTexts = {
     { quote: 'Por fin caché qué me inflamaba. Años sin cachar.', author: 'Javiera', age: 33 },
   ],
   discountText: (time) => `🔥 64% de descuento por ${time}`,
-  paymentBadges: '💳 Visa · Mastercard · Redcompra',
+  paymentBadges: '💳 Visa · Mastercard · Webpay',
+  securityBadge: '🔒 Pago seguro SSL',
+};
+
+const TEXTS_CO: CountryTexts = {
+  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu barriga en 7 días!`,
+  socialProofCount: '237 mujeres esta semana',
+  socialProofText: 'empezaron el protocolo para',
+  reframeTitle: 'No es falta de voluntad. Es inflamación.',
+  reframeBody: 'Tu hinchazón no es porque "comes mal". Es una respuesta inflamatoria a alimentos que crees saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
+  ctaButton: 'OBTENER MI PLAN →',
+  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
+  finalCtaSubtext: 'Aprovecha el 64% de descuento antes de que expire.',
+  guaranteeText: 'Tienes 7 días para probarlo. Si no ves resultados, te devolvemos la plata sin preguntas. Un email y listo.',
+  choosePlanTitle: 'Elige tu plan',
+  weeklyHighlights: [
+    { week: 1, title: 'Limpieza intestinal', desc: 'Elimina los 7 alimentos que te inflaman sin que lo sepas' },
+    { week: 2, title: 'Siéntete liviana', desc: 'Restaura tu microbiota con el protocolo antiinflamatorio' },
+    { week: 3, title: 'Barriga plana', desc: 'Reincorpora alimentos seguros y consolida resultados' },
+    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
+  ],
+  faqItems: [
+    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
+    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
+    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
+    { q: 'Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
+  ],
+  testimonials: [
+    { quote: 'Al día 4 se me deshinchó la barriga. ¡No lo podía creer!', author: 'Catalina', age: 39 },
+    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Valentina', age: 51 },
+    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Daniela', age: 36 },
+  ],
+  discountText: (time) => `🔥 64% de descuento por ${time}`,
+  paymentBadges: '💳 Visa · Mastercard · PSE',
+  securityBadge: '🔒 Pago seguro SSL',
+};
+
+const TEXTS_PE: CountryTexts = {
+  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu barriga en 7 días!`,
+  socialProofCount: '237 mujeres esta semana',
+  socialProofText: 'empezaron el protocolo para',
+  reframeTitle: 'No es falta de voluntad. Es inflamación.',
+  reframeBody: 'Tu hinchazón no es porque "comes mal". Es una respuesta inflamatoria a alimentos que crees saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
+  ctaButton: 'OBTENER MI PLAN →',
+  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
+  finalCtaSubtext: 'Aprovecha el 64% de descuento antes de que expire.',
+  guaranteeText: 'Tienes 7 días para probarlo. Si no ves resultados, te devolvemos tu dinero sin preguntas. Un email y listo.',
+  choosePlanTitle: 'Elige tu plan',
+  weeklyHighlights: [
+    { week: 1, title: 'Limpieza intestinal', desc: 'Elimina los 7 alimentos que te inflaman sin que lo sepas' },
+    { week: 2, title: 'Siéntete liviana', desc: 'Restaura tu microbiota con el protocolo antiinflamatorio' },
+    { week: 3, title: 'Barriga plana', desc: 'Reincorpora alimentos seguros y consolida resultados' },
+    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
+  ],
+  faqItems: [
+    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
+    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
+    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
+    { q: 'Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
+  ],
+  testimonials: [
+    { quote: 'Al día 4 se me deshinchó la barriga. ¡No lo podía creer!', author: 'Milagros', age: 37 },
+    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Claudia', age: 43 },
+    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Jimena', age: 35 },
+  ],
+  discountText: (time) => `🔥 64% de descuento por ${time}`,
+  paymentBadges: '💳 Visa · Mastercard · Yape',
+  securityBadge: '🔒 Pago seguro SSL',
+};
+
+const TEXTS_MX: CountryTexts = {
+  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu pancita en 7 días!`,
+  socialProofCount: '237 mujeres esta semana',
+  socialProofText: 'empezaron el protocolo para',
+  reframeTitle: 'No es falta de voluntad. Es inflamación.',
+  reframeBody: 'Tu hinchazón no es porque "comes mal". Es una respuesta inflamatoria a alimentos que crees saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
+  ctaButton: 'OBTENER MI PLAN →',
+  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
+  finalCtaSubtext: 'Aprovecha el 64% de descuento antes de que expire.',
+  guaranteeText: 'Tienes 7 días para probarlo. Si no ves resultados, te devolvemos tu dinero sin preguntas. Un email y listo.',
+  choosePlanTitle: 'Elige tu plan',
+  weeklyHighlights: [
+    { week: 1, title: 'Limpieza intestinal', desc: 'Elimina los 7 alimentos que te inflaman sin que lo sepas' },
+    { week: 2, title: 'Siéntete ligera', desc: 'Restaura tu microbiota con el protocolo antiinflamatorio' },
+    { week: 3, title: 'Pancita plana', desc: 'Reincorpora alimentos seguros y consolida resultados' },
+    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
+  ],
+  faqItems: [
+    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
+    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
+    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
+    { q: 'Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
+  ],
+  testimonials: [
+    { quote: 'Al día 4 se me deshinchó la pancita. ¡No lo podía creer!', author: 'Fernanda', age: 40 },
+    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Alejandra', age: 47 },
+    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Karla', age: 34 },
+  ],
+  discountText: (time) => `🔥 64% de descuento por ${time}`,
+  paymentBadges: '💳 Visa · Mastercard · OXXO',
+  securityBadge: '🔒 Pago seguro SSL',
+};
+
+// US apunta a la audiencia hispanohablante en Estados Unidos. Tono neutro,
+// sin modismos regionales fuertes (para que se sienta natural a una mexicana,
+// una colombiana o una venezolana en EE.UU.).
+const TEXTS_US: CountryTexts = {
+  heroHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}¡deshincha tu abdomen en 7 días!`,
+  socialProofCount: '237 mujeres esta semana',
+  socialProofText: 'empezaron el protocolo para',
+  reframeTitle: 'No es falta de voluntad. Es inflamación.',
+  reframeBody: 'Tu hinchazón no es porque "comes mal". Es una respuesta inflamatoria a alimentos que crees saludables pero que tu intestino no tolera. El protocolo identifica cuáles son y los elimina en 7 días.',
+  ctaButton: 'OBTENER MI PLAN →',
+  finalCtaHeadline: (nombre) => `${nombre ? `${nombre}, ` : ''}tu plan te está esperando`,
+  finalCtaSubtext: 'Aprovecha el 64% de descuento antes de que expire.',
+  guaranteeText: 'Tienes 7 días para probarlo. Si no ves resultados, te devolvemos tu dinero sin preguntas. Un email y listo.',
+  choosePlanTitle: 'Elige tu plan',
+  weeklyHighlights: [
+    { week: 1, title: 'Limpieza intestinal', desc: 'Elimina los 7 alimentos que te inflaman sin que lo sepas' },
+    { week: 2, title: 'Siéntete ligera', desc: 'Restaura tu microbiota con el protocolo antiinflamatorio' },
+    { week: 3, title: 'Abdomen plano', desc: 'Reincorpora alimentos seguros y consolida resultados' },
+    { week: 4, title: 'Mantenimiento de por vida', desc: 'Tu nuevo estilo de vida sin hinchazón' },
+  ],
+  faqItems: [
+    { q: '¿El plan se adapta a mi situación particular?', a: '¡Sí! Tu plan está hiper-personalizado según tus respuestas. Además, puedes ajustar preferencias dentro de la app.' },
+    { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibes acceso a la app Chau Hinchazón en tu celular. Es una PWA — no necesitas descargar nada de la tienda.' },
+    { q: '¿Qué pasa si me cuesta mantener la motivación?', a: 'El plan está diseñado para ser gradual. Empiezas con solo 5 minutos al día y la app te guía paso a paso con recordatorios.' },
+    { q: 'Probé muchas cosas y nada funcionó. ¿Por qué esto sería diferente?', a: 'Porque no es una dieta genérica. Es un protocolo basado en tu tipo específico de hinchazón que ataca la causa real (inflamación intestinal), no solo los síntomas.' },
+  ],
+  testimonials: [
+    { quote: 'Al día 4 se me deshinchó el abdomen. ¡No lo podía creer!', author: 'Gabriela', age: 39 },
+    { quote: 'Bajé 3 cm sin hacer dieta. Solo cambié 7 alimentos.', author: 'Mariana', age: 44 },
+    { quote: 'Por fin entendí qué me inflamaba. Años sin saberlo.', author: 'Sofía', age: 36 },
+  ],
+  discountText: (time) => `🔥 64% de descuento por ${time}`,
+  paymentBadges: '💳 Visa · Mastercard · Amex · PayPal',
   securityBadge: '🔒 Pago seguro SSL',
 };
 
 export const TEXTS_BY_COUNTRY: Record<CountryCode, CountryTexts> = {
-  AR: TEXTS_AR,
+  CL: TEXTS_CL,
   CO: TEXTS_CO,
   PE: TEXTS_PE,
   MX: TEXTS_MX,
-  CL: TEXTS_CL,
+  US: TEXTS_US,
 };
 
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TEXTOS DEL QUIZ (preguntas) POR PAÍS
-// Solo las variaciones significativas — el resto se usa como fallback de AR
+// Solo overrides puntuales — el resto cae al texto base de data.ts.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface QuizQuestionOverride {
@@ -384,13 +315,33 @@ export interface QuizQuestionOverride {
   options?: { value: string; label: string; emoji?: string }[];
 }
 
-/**
- * Overrides por país para los slides del quiz.
- * Solo se incluyen los que tienen diferencias significativas con AR.
- * La lógica de merge está en el hook useCountryLocale.
- */
 export const QUIZ_OVERRIDES: Record<CountryCode, Record<string, QuizQuestionOverride>> = {
-  AR: {}, // base — sin overrides
+  CL: {
+    momento_hinchazon: {
+      question: '¿En qué momento del día sientes MÁS la hinchazón?',
+      options: [
+        { value: 'manana', label: 'Apenas me levanto', emoji: '🌅' },
+        { value: 'almuerzo', label: 'Después de almorzar', emoji: '🍽️' },
+        { value: 'tarde_noche', label: 'En la tarde / noche', emoji: '🌙' },
+        { value: 'todo_el_dia', label: 'Todo el día sin parar', emoji: '😩' },
+      ],
+    },
+    frecuencia: {
+      question: '¿Con qué frecuencia te sientes hinchada?',
+    },
+    impacto_emocional: {
+      question: '¿Cómo te hace sentir tener la guata hinchada?',
+    },
+    objetivo: {
+      question: '¿Qué resultado quieres lograr en los próximos 7 días?',
+      options: [
+        { value: 'panza_plana', label: 'Bajar 2-3 cm de guata', emoji: '📏' },
+        { value: 'liviana', label: 'Sentirme liviana después de comer', emoji: '🌿' },
+        { value: 'digestion', label: 'Mejorar mi digestión', emoji: '✨' },
+        { value: 'todo', label: 'Todo lo anterior', emoji: '🎯' },
+      ],
+    },
+  },
   CO: {
     situacion_actual: {
       question: '¿Cuál es tu situación actual con la hinchazón?',
@@ -475,12 +426,12 @@ export const QUIZ_OVERRIDES: Record<CountryCode, Record<string, QuizQuestionOver
       ],
     },
   },
-  CL: {
+  US: {
     momento_hinchazon: {
       question: '¿En qué momento del día sientes MÁS la hinchazón?',
       options: [
         { value: 'manana', label: 'Apenas me levanto', emoji: '🌅' },
-        { value: 'almuerzo', label: 'Después de almorzar', emoji: '🍽️' },
+        { value: 'almuerzo', label: 'Después del almuerzo', emoji: '🍽️' },
         { value: 'tarde_noche', label: 'En la tarde / noche', emoji: '🌙' },
         { value: 'todo_el_dia', label: 'Todo el día sin parar', emoji: '😩' },
       ],
@@ -489,13 +440,16 @@ export const QUIZ_OVERRIDES: Record<CountryCode, Record<string, QuizQuestionOver
       question: '¿Con qué frecuencia te sientes hinchada?',
     },
     impacto_emocional: {
-      question: '¿Cómo te hace sentir tener la guata hinchada?',
+      question: '¿Cómo te hace sentir tener el abdomen hinchado?',
+    },
+    impacto_social: {
+      question: '¿Evitas situaciones sociales por la hinchazón?',
     },
     objetivo: {
       question: '¿Qué resultado quieres lograr en los próximos 7 días?',
       options: [
-        { value: 'panza_plana', label: 'Bajar 2-3 cm de guata', emoji: '📏' },
-        { value: 'liviana', label: 'Sentirme liviana después de comer', emoji: '🌿' },
+        { value: 'panza_plana', label: 'Bajar 2-3 cm de abdomen', emoji: '📏' },
+        { value: 'liviana', label: 'Sentirme ligera después de comer', emoji: '🌿' },
         { value: 'digestion', label: 'Mejorar mi digestión', emoji: '✨' },
         { value: 'todo', label: 'Todo lo anterior', emoji: '🎯' },
       ],
@@ -505,16 +459,41 @@ export const QUIZ_OVERRIDES: Record<CountryCode, Record<string, QuizQuestionOver
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SOCIAL PROOF OVERRIDES POR PAÍS
+// PRUEBA SOCIAL POR PAÍS — slide "noticia viral" + testimonios localizados
 // ═══════════════════════════════════════════════════════════════════════════
+//
+// `socialProofImage` apunta a la imagen del periódico local (slide 4 del quiz).
+// Las imágenes viven en `/public/img/noticia-viral-{cc}.jpg` (cc = código en
+// minúscula). Si la imagen no existe, SlideViralNews muestra el fallback de
+// texto con el nombre del medio sugerido.
+//
+// SUGERENCIAS DE PERIÓDICO POR PAÍS (para que el equipo creativo cree el mockup):
+//   CL → BioBio Chile o La Tercera
+//   CO → El Tiempo o Semana
+//   MX → El Universal o Milenio
+//   PE → El Comercio o RPP
+//   US → USA Today o CNN en Español
 
-export const SOCIAL_PROOF_OVERRIDES: Record<CountryCode, { slide1Text: string; testimonials?: { quote: string; author: string }[] }> = {
-  AR: {
-    slide1Text: 'de panza en 7 días. Es lo que reportan en promedio las mujeres que completan el protocolo.',
+export interface CountrySocialProof {
+  /** Texto del slide 1 (social proof "X mujeres bajaron Y de panza..."). */
+  slide1Text: string;
+  /** Testimonios alternativos para slide 3 (opcional). */
+  testimonials?: { quote: string; author: string }[];
+  /** Imagen del periódico que se muestra en el slide "noticia viral" (slide 4). */
+  socialProofImage: string;
+  /** Nombre del medio (para el alt text de la imagen y el fallback). */
+  socialProofSource: string;
+}
+
+export const SOCIAL_PROOF_OVERRIDES: Record<CountryCode, CountrySocialProof> = {
+  CL: {
+    slide1Text: 'de guata en 7 días. Es lo que reportan en promedio las mujeres que completan el protocolo.',
     testimonials: [
-      { quote: 'Al día 4 ya no me cerraba el jean. No lo podía creer.', author: 'Anabela, 41 · Buenos Aires' },
-      { quote: 'En 7 días entendí cuál era el alimento que me inflamaba hace años.', author: 'Lucía, 38 · Córdoba' },
+      { quote: 'Al día 4 ya la guata estaba deshinchada. ¡No lo podía creer!', author: 'Constanza, 38 · Santiago' },
+      { quote: 'En 7 días caché cuál era el alimento que me inflamaba hace años.', author: 'Javiera, 33 · Viña del Mar' },
     ],
+    socialProofImage: '/img/noticia-viral-cl.jpg',
+    socialProofSource: 'BioBio Chile',
   },
   CO: {
     slide1Text: 'de barriga en 7 días. Es lo que reportan en promedio las mujeres que completan el protocolo.',
@@ -522,6 +501,8 @@ export const SOCIAL_PROOF_OVERRIDES: Record<CountryCode, { slide1Text: string; t
       { quote: 'Al día 4 ya la barriga estaba deshinchada. ¡No lo podía creer!', author: 'Catalina, 39 · Bogotá' },
       { quote: 'En 7 días entendí cuál era el alimento que me inflamaba hace años.', author: 'Valentina, 42 · Medellín' },
     ],
+    socialProofImage: '/img/noticia-viral-co.jpg',
+    socialProofSource: 'El Tiempo',
   },
   PE: {
     slide1Text: 'de barriga en 7 días. Es lo que reportan en promedio las mujeres que completan el protocolo.',
@@ -529,6 +510,8 @@ export const SOCIAL_PROOF_OVERRIDES: Record<CountryCode, { slide1Text: string; t
       { quote: 'Al día 4 ya la barriga estaba deshinchada. ¡No lo podía creer!', author: 'Milagros, 37 · Lima' },
       { quote: 'En 7 días entendí cuál era el alimento que me inflamaba hace años.', author: 'Claudia, 43 · Arequipa' },
     ],
+    socialProofImage: '/img/noticia-viral-pe.jpg',
+    socialProofSource: 'El Comercio',
   },
   MX: {
     slide1Text: 'de pancita en 7 días. Es lo que reportan en promedio las mujeres que completan el protocolo.',
@@ -536,22 +519,35 @@ export const SOCIAL_PROOF_OVERRIDES: Record<CountryCode, { slide1Text: string; t
       { quote: 'Al día 4 ya la pancita estaba deshinchada. ¡No lo podía creer!', author: 'Fernanda, 40 · CDMX' },
       { quote: 'En 7 días entendí cuál era el alimento que me inflamaba hace años.', author: 'Alejandra, 47 · Guadalajara' },
     ],
+    socialProofImage: '/img/noticia-viral-mx.jpg',
+    socialProofSource: 'El Universal',
   },
-  CL: {
-    slide1Text: 'de guata en 7 días. Es lo que reportan en promedio las mujeres que completan el protocolo.',
+  US: {
+    slide1Text: 'de abdomen en 7 días. Es lo que reportan en promedio las mujeres que completan el protocolo.',
     testimonials: [
-      { quote: 'Al día 4 ya la guata estaba deshinchada. ¡No lo podía creer!', author: 'Constanza, 38 · Santiago' },
-      { quote: 'En 7 días caché cuál era el alimento que me inflamaba hace años.', author: 'Javiera, 33 · Viña del Mar' },
+      { quote: 'Al día 4 ya el abdomen estaba deshinchado. ¡No lo podía creer!', author: 'Gabriela, 39 · Miami' },
+      { quote: 'En 7 días entendí cuál era el alimento que me inflamaba hace años.', author: 'Mariana, 44 · Houston' },
     ],
+    socialProofImage: '/img/noticia-viral-us.jpg',
+    socialProofSource: 'CNN en Español',
   },
 };
 
+
 // ═══════════════════════════════════════════════════════════════════════════
-// HELPER: DEFAULT COUNTRY
+// HELPER: DEFAULT COUNTRY + VALIDATOR
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const DEFAULT_COUNTRY: CountryCode = 'AR';
+/**
+ * País por defecto cuando no se puede detectar nada (URL/path/localStorage/IP).
+ * Lo usamos como fallback razonable (uno de los 5 países soportados, no
+ * necesariamente el más grande del mercado).
+ */
+export const DEFAULT_COUNTRY: CountryCode = 'CL';
+
+const SUPPORTED_COUNTRIES: ReadonlyArray<CountryCode> = ['CL', 'CO', 'MX', 'PE', 'US'];
 
 export function isValidCountry(code: string | null | undefined): code is CountryCode {
-  return !!code && ['AR', 'CO', 'PE', 'MX', 'CL'].includes(code.toUpperCase());
+  if (!code) return false;
+  return (SUPPORTED_COUNTRIES as ReadonlyArray<string>).includes(code.toUpperCase());
 }

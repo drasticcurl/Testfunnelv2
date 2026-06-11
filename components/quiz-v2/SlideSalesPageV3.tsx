@@ -11,25 +11,28 @@ const PRECIO       = PRICING.front.display;
 const PRECIO_ORIG  = PRICING.front.displayOriginal;
 const COUNTDOWN_SECS = 15 * 60;
 
+// Value stack ítems con valores "originales" en USD (precio antes del descuento de bundle).
+// El total visible al final de la sección es US$146 → consistente con localization.ts.
 const VALUE_STACK = [
-  { icon: '🌾', title: 'Guía completa del Método Agua de Arroz', desc: 'El paso a paso exacto: cómo prepararlo, cuándo tomarlo, qué esperar cada día.', value: '$8.000' },
-  { icon: '📋', title: 'Protocolo de 7 días personalizado',      desc: 'Adaptado a tu perfil digestivo. 10-15 min/día, sin dieta restrictiva.',          value: '$15.000' },
-  { icon: '🍽️', title: '21 recetas antiinflamatorias fáciles',   desc: 'Desayunos, almuerzos y cenas. Lista de compras incluida.',                        value: '$10.000' },
-  { icon: '⚡', title: 'Kit Express deshinchate en 20 minutos',   desc: 'Para cuando necesitás resultados rápidos. Funciona siempre.',                     value: '$6.000' },
-  { icon: '📱', title: 'Acceso a la app con tu plan diario',      desc: 'Seguís el protocolo desde el celular, día a día, con recordatorios.',              value: '$12.000' },
+  { icon: '🌾', title: 'Guía completa del Método Agua de Arroz', desc: 'El paso a paso exacto: cómo prepararlo, cuándo tomarlo, qué esperar cada día.', value: 'US$29' },
+  { icon: '📋', title: 'Protocolo de 7 días personalizado',      desc: 'Adaptado a tu perfil digestivo. 10-15 min/día, sin dieta restrictiva.',          value: 'US$39' },
+  { icon: '🍽️', title: '21 recetas antiinflamatorias fáciles',   desc: 'Desayunos, almuerzos y cenas. Lista de compras incluida.',                        value: 'US$29' },
+  { icon: '⚡', title: 'Kit Express deshinchate en 20 minutos',   desc: 'Para cuando necesitás resultados rápidos. Funciona siempre.',                     value: 'US$19' },
+  { icon: '📱', title: 'Acceso a la app con tu plan diario',      desc: 'Seguís el protocolo desde el celular, día a día, con recordatorios.',              value: 'US$30' },
 ];
 
+// Testimonios sin ciudad específica para que sirvan a CL/CO/MX/PE/US sin chocar con el país detectado.
 const TESTIMONIOS = [
-  { quote: 'Al día 4 ya no me cerraba el jean. No lo podía creer. El agua de arroz en ayunas fue un antes y un después.', author: 'Anabela', age: 41, city: 'Buenos Aires' },
-  { quote: 'En 7 días entendí qué alimento me inflamaba hace años. Nunca lo hubiera descubierto sola.', author: 'Lucía', age: 38, city: 'Córdoba' },
-  { quote: 'Bajé 3 cm de panza sin hacer dieta. Solo cambié el desayuno y empecé con el agua de arroz.', author: 'Verónica', age: 51, city: 'Mendoza' },
+  { quote: 'Al día 4 ya no me cerraba el jean. No lo podía creer. El agua de arroz en ayunas fue un antes y un después.', author: 'Anabela', age: 41 },
+  { quote: 'En 7 días entendí qué alimento me inflamaba hace años. Nunca lo hubiera descubierto sola.', author: 'Lucía', age: 38 },
+  { quote: 'Bajé 3 cm de panza sin hacer dieta. Solo cambié el desayuno y empecé con el agua de arroz.', author: 'Verónica', age: 51 },
 ];
 
 const FAQ = [
   { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibís acceso a la app en tu celular. Es una PWA — no necesitás descargar nada del App Store.' },
   { q: '¿El plan está personalizado a mis respuestas?', a: 'Sí. Todo el protocolo está calibrado según tu peso, tu rutina y tu perfil digestivo determinado en el test.' },
   { q: '¿Cuánto tiempo necesito por día?', a: 'Mínimo 5 minutos (preparar el agua de arroz). El protocolo completo lleva 15-20 min.' },
-  { q: '¿Y si no funciona para mí?', a: 'Tenés 30 días de garantía completa. Si no ves resultados, te devolvemos los $6.000 sin preguntas. Un email y listo.' },
+  { q: '¿Y si no funciona para mí?', a: `Tenés 30 días de garantía completa. Si no ves resultados, te devolvemos los ${PRICING.front.display} sin preguntas. Un email y listo.` },
   { q: '¿Necesito comprar suplementos o productos especiales?', a: 'No. Todo el método usa ingredientes que ya tenés en tu casa: arroz, agua, limón y especias básicas.' },
 ];
 
@@ -292,7 +295,7 @@ export function SlideSalesPageV3() {
               <span className="text-lg line-through" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>{PRECIO_ORIG}</span>
               <span className="text-4xl font-bold" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-sans)' }}>{PRECIO}</span>
             </div>
-            <p className="text-xs mb-4" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>= $214 pesos por día · menos que un café</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>= US$2.71 por día · menos que un café</p>
 
             <button type="button" onClick={handleCheckout} className="btn-primary mb-3">
               QUIERO MI PLAN PERSONALIZADO →
@@ -301,15 +304,15 @@ export function SlideSalesPageV3() {
             <div className="flex items-center justify-center gap-3 text-xs" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>
               <span>🔒 Pago seguro SSL</span>
               <span>·</span>
-              <span>💳 Visa · Mastercard · MercadoPago</span>
+              <span>💳 Visa · Mastercard · Amex</span>
             </div>
           </div>
 
-          {/* Comparativa */}
+          {/* Comparativa de precio (USD, valida para los 5 países) */}
           <div className="mt-4 flex flex-col gap-2">
             {[
-              { label: 'Nutricionista privada', value: '$30.000/mes', crossed: true },
-              { label: 'Gastroenterólogo', value: '$45.000 consulta', crossed: true },
+              { label: 'Nutricionista privada', value: 'US$80–150/mes', crossed: true },
+              { label: 'Gastroenterólogo', value: 'US$200 consulta', crossed: true },
               { label: 'Protocolo Agua de Arroz', value: PRECIO + ' total', crossed: false },
             ].map((row) => (
               <div
@@ -354,11 +357,11 @@ export function SlideSalesPageV3() {
           </div>
           <div className="mt-4 rounded-2xl p-4 text-center border" style={{ backgroundColor: 'var(--terracotta-soft)', borderColor: 'rgba(192,85,58,0.2)' }}>
             <p className="text-xs mb-1" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>Valor total</p>
-            <p className="text-2xl font-bold line-through mb-1" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>$51.000</p>
+            <p className="text-2xl font-bold line-through mb-1" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>US$146</p>
             <p className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-sans)' }}>
               Hoy accedés por <span className="text-xl font-bold" style={{ color: 'var(--terracotta)' }}>{PRECIO}</span>
             </p>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>88% de descuento</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>87% de descuento</p>
           </div>
         </div>
       </section>
@@ -379,7 +382,7 @@ export function SlideSalesPageV3() {
                 <div className="rounded-2xl rounded-bl-md px-4 py-3 max-w-[85%]" style={{ backgroundColor: '#E8F5E1' }}>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-sans)' }}>{t.quote}</p>
                   <p className="mt-1 text-xs text-right" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>
-                    {t.author}, {t.age} años · {t.city}
+                    {t.author}, {t.age} años
                   </p>
                 </div>
               </div>

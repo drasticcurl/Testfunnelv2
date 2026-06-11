@@ -119,41 +119,72 @@ export function getUTMs(): UTMs {
 }
 
 
-// ─── Atribución para el checkout de Shopify ────────────────────────────────
+// ─── Atribución para el checkout de Hotmart ────────────────────────────────
 
 /**
- * Construye los parámetros de atribución para el link de checkout de Shopify
- * a partir de los UTMs (+fbclid) guardados en localStorage.
+ * Lee el país detectado/forzado del localStorage. Lo escribe `useCountryLocale`
+ * cuando el usuario entra por una ruta SEO (`/chile`, `/colombia`, etc.) o
+ * cuando la geo-IP devuelve un país soportado.
  *
- * Los pasa en DOS formas a propósito:
- *  1. query plano (`utm_source=...`)        → analytics / fallback `landing_site`.
- *  2. cart attribute (`attributes[utm_source]=...`) → Shopify lo persiste en la
- *     ORDEN como `note_attributes`, que es lo que el webhook lee de forma
- *     CONFIABLE. El `landing_site` se pierde según la sesión del cliente en la
- *     tienda → por eso las ventas caían en "(directo)" aunque la landing y el
- *     funnel registraban bien el UTM.
- *
- * Cart permalinks soportan `attributes[...]` (Shopify docs: "Create cart
- * permalinks"). Brackets en literal (Shopify los espera así); solo encodeamos
- * clave y valor.
- *
- * Devuelve '' si no hay UTMs guardados. No incluye separador inicial (? / &).
+ * Devuelve `undefined` si no hay país guardado (ej: usuario que entró direct
+ * a `/upsell` sin pasar por el quiz). En ese caso, el webhook de Hotmart cae
+ * al `buyer.address.country` del payload como fallback.
  */
-export function buildCheckoutAttribution(): string {
-  const utms = getUTMs();
-  const parts: string[] = [];
-  for (const [k, v] of Object.entries(utms)) {
-    if (!v) continue;
-    parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
-    parts.push(`attributes[${encodeURIComponent(k)}]=${encodeURIComponent(v)}`);
+function getStoredCountry(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const v = window.localStorage.getItem(STORAGE_KEYS.country);
+    if (typeof v !== 'string' || v.length !== 2) return undefined;
+    return v.toUpperCase();
+  } catch {
+    return undefined;
   }
-  return parts.join('&');
 }
 
 /**
- * Une una URL de checkout con los parámetros de atribución (UTMs como query +
- * cart attributes) y, opcionalmente, params extra (ej. `{ src: 'quiz_v3' }`).
- * Usa el separador correcto (`?` o `&`) según la URL.
+ * Construye la atribución para el `xcod` de Hotmart a partir de los UTMs (+
+ * fbclid) guardados en localStorage y el país (también del localStorage).
+ *
+ * Hotmart preserva el valor de `?xcod=...` en la orden y lo devuelve en el
+ * webhook como `purchase.origin.xcod` y `purchase.tracking.source`. Como
+ * Hotmart NO conserva query params arbitrarios (solo los suyos: `off`,
+ * `src`, `xcod`, `sck`...), TODA la atribución de la venta tiene que entrar
+ * por `xcod`. Por eso serializamos los UTMs + country como un querystring
+ * dentro de `xcod`:
+ *
+ *   xcod=country%3DCL%26utm_source%3Dfacebook%26utm_campaign%3DChile1
+ *
+ * El webhook (`/api/hotmart-webhook`) lo parsea de vuelta con URLSearchParams.
+ *
+ * Hotmart limita `xcod` a 200 caracteres → si nos pasamos, truncamos al
+ * último `&` que entra en 195 chars (preservamos pares clave=valor enteros).
+ *
+ * Devuelve '' si no hay nada para atribuir (sin separador).
+ */
+function buildHotmartXcod(): string {
+  const utms = getUTMs();
+  const country = getStoredCountry();
+
+  const sp = new URLSearchParams();
+  if (country) sp.set('country', country);
+  for (const [k, v] of Object.entries(utms)) {
+    if (typeof v === 'string' && v.length > 0) sp.set(k, v);
+  }
+  const raw = sp.toString();
+  if (raw.length === 0) return '';
+  if (raw.length <= 195) return raw;
+
+  // Truncar al último `&` que entra en 195 chars para no romper un par.
+  const cut = raw.lastIndexOf('&', 195);
+  return cut > 0 ? raw.slice(0, cut) : raw.slice(0, 195);
+}
+
+/**
+ * Une una URL de checkout de Hotmart con la atribución (UTMs + country
+ * codificados en el `xcod`) y, opcionalmente, params extra (ej. `src=quiz_v3`)
+ * que viajan como query plana fuera del xcod.
+ *
+ * Si no hay nada para atribuir y no se pasa `extra`, devuelve la URL tal cual.
  */
 export function withCheckoutAttribution(
   url: string,
@@ -165,8 +196,8 @@ export function withCheckoutAttribution(
       if (v) parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
     }
   }
-  const attribution = buildCheckoutAttribution();
-  if (attribution) parts.push(attribution);
+  const xcod = buildHotmartXcod();
+  if (xcod) parts.push(`xcod=${encodeURIComponent(xcod)}`);
   if (parts.length === 0) return url;
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}${parts.join('&')}`;

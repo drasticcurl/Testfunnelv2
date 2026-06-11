@@ -88,14 +88,29 @@ const SLIDE_LABELS: Record<string, string> = {
 };
 
 const COUNTRY_FLAGS: Record<string, string> = {
-  AR: '🇦🇷', CO: '🇨🇴', PE: '🇵🇪', MX: '🇲🇽', CL: '🇨🇱', '(desconocido)': '🌎',
+  CL: '🇨🇱', CO: '🇨🇴', MX: '🇲🇽', PE: '🇵🇪', US: '🇺🇸', '(desconocido)': '🌎',
 };
+
+const COUNTRY_FILTER_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'all', label: '🌎 Todos los países' },
+  { value: 'CL', label: '🇨🇱 Chile' },
+  { value: 'CO', label: '🇨🇴 Colombia' },
+  { value: 'MX', label: '🇲🇽 México' },
+  { value: 'PE', label: '🇵🇪 Perú' },
+  { value: 'US', label: '🇺🇸 EE.UU.' },
+  { value: '(desconocido)', label: '❓ Sin país detectado' },
+];
 
 export function FunnelView({ initialData }: Props) {
   const [data, setData] = useState<FunnelData>(initialData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>(initialData.day ?? getArgentinaDay());
+  // Filtro por país: 'all' = todos, o ISO alpha-2 ('CL', 'CO', ...). Default
+  // = lo que vino del SSR (no toca el filtro del SSR).
+  const [selectedCountry, setSelectedCountry] = useState<string>(
+    initialData.filters?.country ?? 'all',
+  );
 
   // Backfill manual de compras (webhooks perdidos / ventas viejas).
   const [backfillOpen, setBackfillOpen] = useState(false);
@@ -104,11 +119,13 @@ export function FunnelView({ initialData }: Props) {
   const [backfillCountry, setBackfillCountry] = useState('');
   const [backfillBusy, setBackfillBusy] = useState(false);
 
-  const refetch = useCallback(async (day: string) => {
+  const refetch = useCallback(async (day: string, country: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/funnel-data?day=${encodeURIComponent(day)}`, {
+      const params = new URLSearchParams({ day });
+      if (country && country !== 'all') params.set('country', country);
+      const res = await fetch(`/api/admin/funnel-data?${params.toString()}`, {
         cache: 'no-store',
         credentials: 'same-origin',
       });
@@ -126,8 +143,13 @@ export function FunnelView({ initialData }: Props) {
 
   const onChangeDay = useCallback((day: string) => {
     setSelectedDay(day);
-    refetch(day);
-  }, [refetch]);
+    refetch(day, selectedCountry);
+  }, [refetch, selectedCountry]);
+
+  const onChangeCountry = useCallback((country: string) => {
+    setSelectedCountry(country);
+    refetch(selectedDay, country);
+  }, [refetch, selectedDay]);
 
   const onReset = useCallback(async () => {
     const code = prompt('Para resetear TODAS las estadísticas (todos los días), escribí "123":');
@@ -145,11 +167,11 @@ export function FunnelView({ initialData }: Props) {
         return;
       }
       alert('✅ Estadísticas reseteadas correctamente');
-      refetch(selectedDay);
+      refetch(selectedDay, selectedCountry);
     } catch (err) {
       alert(`Error de red al resetear: ${err instanceof Error ? err.message : 'desconocido'}`);
     }
-  }, [refetch, selectedDay]);
+  }, [refetch, selectedDay, selectedCountry]);
 
   const onBackfillSubmit = useCallback(async () => {
     const n = Number.parseInt(backfillCount, 10);
@@ -186,13 +208,13 @@ export function FunnelView({ initialData }: Props) {
       // El backfill se registra con el día de hoy → vamos a hoy.
       const todayStr = getArgentinaDay();
       setSelectedDay(todayStr);
-      refetch(todayStr);
+      refetch(todayStr, selectedCountry);
     } catch (err) {
       alert(`Error de red: ${err instanceof Error ? err.message : 'desconocido'}`);
     } finally {
       setBackfillBusy(false);
     }
-  }, [backfillCount, backfillCampaign, backfillCountry, refetch]);
+  }, [backfillCount, backfillCampaign, backfillCountry, refetch, selectedCountry]);
 
   // Opciones del selector de día: hoy + ayer + días con datos + acumulado.
   const dayOptions = useMemo(() => {
@@ -269,7 +291,24 @@ export function FunnelView({ initialData }: Props) {
             </select>
             <span className="pointer-events-none absolute right-3 text-neutral-500">▾</span>
           </div>
-          <Button onClick={() => refetch(selectedDay)} disabled={loading} variant="secondary">
+          {/* Selector de país */}
+          <div className="relative inline-flex items-center">
+            <select
+              value={selectedCountry}
+              onChange={(e) => onChangeCountry(e.target.value)}
+              disabled={loading}
+              className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-sm font-medium text-neutral-200 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 disabled:opacity-50"
+              title="Filtrar por país"
+            >
+              {COUNTRY_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-[#13131a] text-neutral-200">
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 text-neutral-500">▾</span>
+          </div>
+          <Button onClick={() => refetch(selectedDay, selectedCountry)} disabled={loading} variant="secondary">
             {loading ? <Spinner /> : <ArrowClockwise size={15} weight="bold" />}
             Actualizar
           </Button>

@@ -27,7 +27,9 @@ interface Props {
 
 export function SlideLandingCover({ onNext }: Props) {
   const { country } = useCountry();
-  const seasonText = SEASON_BANNER[country] || SEASON_BANNER.AR;
+  // SEASON_BANNER tiene una entrada por cada CountryCode soportado (CL/CO/MX/PE/US),
+  // así que el lookup nunca devuelve undefined. Fallback defensivo a CL por las dudas.
+  const seasonText = SEASON_BANNER[country] || SEASON_BANNER.CL;
 
   return (
     <motion.div

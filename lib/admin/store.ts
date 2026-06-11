@@ -29,6 +29,11 @@ export type FunnelFilters = {
    *  - Un día concreto => solo eventos de ese día.
    */
   day?: string | 'all';
+  /**
+   * Filtra por país (ISO alpha-2). `undefined` o `'all'` = todos los países.
+   * `'(desconocido)'` = solo eventos sin país detectado.
+   */
+  country?: string | 'all';
 };
 
 export type FunnelSlideRow = {
@@ -245,9 +250,17 @@ function computeFunnel(
 
   // Filter by day unless 'all'/undefined.
   const dayFilter = filters.day && filters.day !== 'all' ? filters.day : null;
-  const filteredRows = dayFilter
+  const dayRows = dayFilter
     ? versionRows.filter((r) => (r.day || DAY_SENTINEL) === dayFilter)
     : versionRows;
+
+  // Filter by country unless 'all'/undefined. Acepta '(desconocido)' como
+  // valor explícito para ver solo eventos sin país detectado.
+  const countryFilter =
+    filters.country && filters.country !== 'all' ? filters.country : null;
+  const filteredRows = countryFilter
+    ? dayRows.filter((r) => (r.country || '(desconocido)') === countryFilter)
+    : dayRows;
   const perSlide: Record<number, number> = {};
   let landingViews = 0;
   let viewContent = 0;
