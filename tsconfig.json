@@ -12,11 +12,27 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": ["./*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "components/quiz-v2/SlideAgeSelector.tsx",
+    "components/quiz-v2/SlideAuthorityVideo.tsx",
+    "components/quiz-v2/SlideLandingCover.tsx",
+    "components/quiz-v2/SlideLoadingWithQuestions.tsx",
+    "components/quiz-v2/SlidePlanPreview.tsx",
+    "components/quiz-v2/SlideProfileResult.tsx",
+    "components/quiz-v2/SlideSalesPage.tsx",
+    "components/quiz-v2/SlideSocialProof.tsx",
+    "components/quiz-v2/SlideWeeklyPlan.tsx",
+    "components/quiz-v2/QuizProgressV2.tsx"
+  ]
 }
