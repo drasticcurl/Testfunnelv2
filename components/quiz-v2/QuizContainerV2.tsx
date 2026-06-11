@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useQuizStore } from '@/lib/quiz-v2/store';
 import { slidesV3, SLIDES_WITHOUT_PROGRESS } from '@/lib/quiz-v2/data';
 import { captureUTMs, getMetaCookies, getUTMs } from '@/lib/cookies';
+import { useCountry } from '@/lib/quiz-v2/CountryContext';
 import type { SlideV3 } from '@/lib/quiz-v2/types';
 
 import { QuizProgressV3 }      from './QuizProgressV3';
@@ -31,6 +32,10 @@ export function QuizContainerV2() {
   const setAnswer    = useQuizStore((s) => s.setAnswer);
   const next         = useQuizStore((s) => s.next);
   const initialized  = useRef(false);
+  // País detectado o forzado por la ruta SEO. Se manda en cada evento del
+  // funnel (QuizProgress, ViewContent, Purchase) y al guardar el lead, así
+  // /admin/funnel puede segmentar por país.
+  const { country }  = useCountry();
 
   const slide = slidesV3[currentStep] as SlideV3 | undefined;
 
@@ -69,10 +74,10 @@ export function QuizContainerV2() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         event: 'QuizProgress', fbc: meta.fbc, fbp: meta.fbp,
-        custom: { slide: currentStep, total_slides: slidesV3.length, question_id: slide.id, quiz_version: 'v3', utms },
+        custom: { slide: currentStep, total_slides: slidesV3.length, question_id: slide.id, quiz_version: 'v3', country, utms },
       }),
     }).catch(() => {});
-  }, [currentStep, slide]);
+  }, [currentStep, slide, country]);
 
   if (!slide) return null;
 
@@ -83,11 +88,12 @@ export function QuizContainerV2() {
     setAnswer('email', email);
     const meta = getMetaCookies();
     const utms = getUTMs();
-    // Mandamos TODAS las answers actuales + email + nombre. El endpoint
-    // ya valida y persiste en Supabase + Systeme.io + Meta CAPI Lead.
+    // Mandamos TODAS las answers actuales + email + país detectado/forzado.
+    // El endpoint persiste en `clientes` (con country) y dispara CAPI Lead.
     const body = {
       ...useQuizStore.getState().answers,
       email,
+      country,
       fbc: meta.fbc,
       fbp: meta.fbp,
       utms,

@@ -30,6 +30,8 @@ export const STORAGE_KEYS = {
   quizState: 'agua-arroz-quiz-v3',
   /** UTMs + fbclid capturados en la landing (primer visit). */
   utm: 'anti-hinchazon-utms',
+  /** País detectado o forzado por la ruta SEO (ej: /chile → 'CL'). */
+  country: 'chau-hinchazon-country',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

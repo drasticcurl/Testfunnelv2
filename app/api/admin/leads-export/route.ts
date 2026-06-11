@@ -29,6 +29,7 @@ export const dynamic = 'force-dynamic';
 interface LeadRow {
   email: string;
   nombre: string | null;
+  country: string | null;
   tipo_hinchazon: number | null;
   severidad: number | null;
   created_at: string;
@@ -60,6 +61,7 @@ function buildTags(lead: LeadRow): string {
   if (lead.tipo_hinchazon != null) tags.push(`tipo-${lead.tipo_hinchazon}`);
   const sev = severidadBucket(lead.severidad);
   if (sev !== 'sd') tags.push(`severidad-${sev}`);
+  if (lead.country) tags.push(`pais-${lead.country.toLowerCase()}`);
   return tags.join(',');
 }
 
@@ -67,6 +69,7 @@ function buildNote(lead: LeadRow): string {
   const parts: string[] = [];
   if (lead.tipo_hinchazon != null) parts.push(`Tipo hinchazon ${lead.tipo_hinchazon}`);
   if (lead.severidad != null) parts.push(`severidad ${lead.severidad}/10`);
+  if (lead.country) parts.push(`pais ${lead.country}`);
   parts.push(`quiz ${new Date(lead.created_at).toISOString().slice(0, 10)}`);
   return parts.join(' — ');
 }
@@ -91,7 +94,7 @@ export async function GET(req: NextRequest) {
   // ── 1. Traer leads de tabla `clientes` ──────────────────────────────────
   let leadsQuery = supabase
     .from('clientes')
-    .select('email, nombre, tipo_hinchazon, severidad, created_at')
+    .select('email, nombre, country, tipo_hinchazon, severidad, created_at')
     .order('created_at', { ascending: false });
 
   if (sinceRaw) {
@@ -103,6 +106,17 @@ export async function GET(req: NextRequest) {
       );
     }
     leadsQuery = leadsQuery.gte('created_at', `${sinceRaw}T00:00:00Z`);
+  }
+
+  // Filtro por país opcional: ?country=CL (ISO alpha-2). Si está, filtramos
+  // antes de descargar el CSV para que el archivo solo tenga ese país.
+  const SUPPORTED_COUNTRIES = new Set(['CL', 'CO', 'MX', 'PE', 'US']);
+  const countryParam = url.searchParams.get('country');
+  if (countryParam) {
+    const upper = countryParam.toUpperCase();
+    if (SUPPORTED_COUNTRIES.has(upper)) {
+      leadsQuery = leadsQuery.eq('country', upper);
+    }
   }
 
   const { data: leads, error: leadsErr } = await leadsQuery;
@@ -146,6 +160,7 @@ export async function GET(req: NextRequest) {
     'First Name',
     'Last Name',
     'Email',
+    'Country',
     'Accepts Email Marketing',
     'Tags',
     'Note',
@@ -159,6 +174,7 @@ export async function GET(req: NextRequest) {
       csvEscape(firstName),
       csvEscape(''), // Last Name (no lo capturamos)
       csvEscape(lead.email.trim()),
+      csvEscape(lead.country ?? ''),
       csvEscape('yes'),
       csvEscape(buildTags(lead)),
       csvEscape(buildNote(lead)),

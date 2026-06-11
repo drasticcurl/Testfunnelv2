@@ -63,6 +63,18 @@ export async function GET(req: NextRequest) {
     day = getArgentinaDay();
   }
 
+  // Filtro por país (ISO alpha-2). `?country=all` o ausente = todos.
+  // `?country=(desconocido)` = solo eventos sin país detectado.
+  const SUPPORTED_COUNTRIES = new Set(['CL', 'CO', 'MX', 'PE', 'US', '(desconocido)']);
+  const countryParam = url.searchParams.get('country');
+  let country: string | 'all';
+  if (!countryParam || countryParam === 'all') {
+    country = 'all';
+  } else {
+    const upper = countryParam.toUpperCase();
+    country = SUPPORTED_COUNTRIES.has(upper) ? upper : 'all';
+  }
+
   // ── Diagnóstico: `?debug=1` muestra bajo qué día quedan guardados los
   //    eventos en funnel_counts, y el desglose por evento+slide del día.
   if (url.searchParams.get('debug') === '1') {
@@ -124,7 +136,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const data = await getStore().getFunnel({ day });
+  const data = await getStore().getFunnel({ day, country });
 
   return NextResponse.json(
     { ok: true, data },

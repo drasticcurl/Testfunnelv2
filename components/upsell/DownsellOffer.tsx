@@ -137,8 +137,8 @@ export function DownsellOffer() {
               </p>
               <p className="mt-2 font-sans text-sm text-white/60">
                 Setear{' '}
-                <code className="bg-white/10 px-2 py-0.5 rounded">NEXT_PUBLIC_DOWNSELL_CHECKOUT_URL</code>{' '}
-                (permalink de carrito de Shopify) en Vercel.
+                <code className="bg-white/10 px-2 py-0.5 rounded">NEXT_PUBLIC_HOTMART_DOWNSELL_CHECKOUT_URL</code>{' '}
+                (link de checkout de Hotmart) en Vercel.
               </p>
             </div>
           )}

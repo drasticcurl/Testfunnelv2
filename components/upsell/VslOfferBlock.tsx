@@ -17,13 +17,15 @@
  *  - Prueba social en 2 columnas
  *  - CTA repetido al final
  *
- * Tracking (idéntico al UpsellOffer original — NO romper el embudo):
- *  - Click CTA  → fbq InitiateCheckout (PRICING.upsell, ARS) + POST /api/track
- *                 → redirige DIRECTO al checkout de Shopify (UPSELL_CHECKOUT_URL)
+ * Tracking:
+ *  - Click CTA  → fbq InitiateCheckout (PRICING.upsell, USD) + POST /api/track
+ *                 → redirige DIRECTO al checkout de Hotmart (UPSELL_CHECKOUT_URL).
+ *                 La atribución (UTMs + country) viaja codificada en `xcod`
+ *                 vía `withCheckoutAttribution`. Ver lib/cookies.ts.
  *  - Skip       → fbq trackCustom UpsellSkip → /downsell
  *
- * El Purchase del front lo dispara el webhook server-side de Shopify
- * (/api/shopify-webhook); este componente NO lo toca.
+ * El Purchase del front lo dispara el webhook server-side de Hotmart
+ * (/api/hotmart-webhook); este componente NO lo toca.
  */
 
 import { useEffect, useState } from 'react';
@@ -176,7 +178,7 @@ export function VslOfferBlock() {
         window.location.href = withCheckoutAttribution(UPSELL_CHECKOUT_URL);
       } else {
         // Fallback dev/staging: la env var no está configurada.
-        console.warn('[upsell] NEXT_PUBLIC_UPSELL_CHECKOUT_URL no está configurada');
+        console.warn('[upsell] NEXT_PUBLIC_HOTMART_UPSELL_CHECKOUT_URL no está configurada');
       }
     }
   };

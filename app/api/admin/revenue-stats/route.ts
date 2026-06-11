@@ -51,6 +51,7 @@ interface PurchaseRow {
   product_name: string | null;
   utm_source: string | null;
   utm_campaign: string | null;
+  country: string | null;
   purchased_at: string | null;
   created_at: string | null;
 }
@@ -67,16 +68,23 @@ function emptyData() {
     approvedCount: 0,
     refundedCount: 0,
     avgTicket: 0,
-    currency: 'ARS' as const,
+    currency: 'USD' as const,
     last24h: { revenue: 0, count: 0 } as PeriodAgg,
     last7d: { revenue: 0, count: 0 } as PeriodAgg,
     last30d: { revenue: 0, count: 0 } as PeriodAgg,
     byProduct: [] as Array<{ name: string; count: number; revenue: number }>,
     bySource: [] as Array<{ source: string; count: number; revenue: number }>,
     byCampaign: [] as Array<{ campaign: string; count: number; revenue: number }>,
+    byCountry: [] as Array<{ country: string; count: number; revenue: number }>,
     lastSaleAt: null as string | null,
     configured: false,
-    filtered: { sources: null as string[] | null, campaigns: null as string[] | null, count: 0, revenue: 0 },
+    filtered: {
+      sources: null as string[] | null,
+      campaigns: null as string[] | null,
+      countries: null as string[] | null,
+      count: 0,
+      revenue: 0,
+    },
   };
 }
 
@@ -119,7 +127,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-  // ── Parse filtros multi-select (source y campaign) ────────────────────────
+  // ── Parse filtros multi-select (source, campaign y country) ──────────────
   const url = new URL(req.url);
   const sourcesParam = url.searchParams.get('utm_sources');
   const filterSources: Set<string> | null = sourcesParam
@@ -139,15 +147,28 @@ export async function GET(req: NextRequest) {
           .filter(Boolean),
       )
     : null;
-  // Si pasaron lista vacía explícita, lo tratamos como sin filtro.
+  // País: ISO alpha-2 separado por coma (ej: ?countries=CL,CO). Aceptamos
+  // '(desconocido)' como valor explícito para ver compras sin país.
+  const SUPPORTED_COUNTRIES = new Set(['CL', 'CO', 'MX', 'PE', 'US', '(desconocido)']);
+  const countriesParam = url.searchParams.get('countries');
+  const filterCountries: Set<string> | null = countriesParam
+    ? new Set(
+        countriesParam
+          .split(',')
+          .map((s) => s.trim().toUpperCase())
+          .map((s) => (s === '(DESCONOCIDO)' ? '(desconocido)' : s))
+          .filter((s) => SUPPORTED_COUNTRIES.has(s)),
+      )
+    : null;
   const hasSourceFilter = filterSources !== null && filterSources.size > 0;
   const hasCampaignFilter = filterCampaigns !== null && filterCampaigns.size > 0;
-  const hasFilter = hasSourceFilter || hasCampaignFilter;
+  const hasCountryFilter = filterCountries !== null && filterCountries.size > 0;
+  const hasFilter = hasSourceFilter || hasCampaignFilter || hasCountryFilter;
 
   // ── Query ─────────────────────────────────────────────────────────────────
   const { data, error } = await supabase
     .from('purchases')
-    .select('amount, currency, status, product_name, utm_source, utm_campaign, purchased_at, created_at')
+    .select('amount, currency, status, product_name, utm_source, utm_campaign, country, purchased_at, created_at')
     .order('purchased_at', { ascending: false });
 
   if (error) {
@@ -181,8 +202,10 @@ export async function GET(req: NextRequest) {
   // Campaña: agrupamos por clave canónica (case-insensitive) pero guardamos una
   // etiqueta "linda" para mostrar (la primera variante limpia que aparece).
   const campaignAgg = new Map<string, { label: string; count: number; revenue: number }>();
+  // País: agrupamos por ISO alpha-2 (o '(desconocido)' si la fila no tiene country).
+  const countryAgg = new Map<string, { count: number; revenue: number }>();
   let lastSaleAt: string | null = null;
-  let detectedCurrency = 'ARS';
+  let detectedCurrency = 'USD';
 
   for (const row of rows) {
     const amount = toAmount(row.amount);
@@ -203,11 +226,19 @@ export async function GET(req: NextRequest) {
       const prevCamp = campaignAgg.get(campKey) ?? { label: campLbl, count: 0, revenue: 0 };
       campaignAgg.set(campKey, { label: prevCamp.label, count: prevCamp.count + 1, revenue: prevCamp.revenue + amount });
 
-      // Filtro combinado: la fila pasa si matchea source (o no hay filtro de source)
-      // Y matchea campaign (o no hay filtro de campaign).
+      const countryKey =
+        typeof row.country === 'string' && row.country.trim().length > 0
+          ? row.country.trim().toUpperCase()
+          : '(desconocido)';
+      const prevCtry = countryAgg.get(countryKey) ?? { count: 0, revenue: 0 };
+      countryAgg.set(countryKey, { count: prevCtry.count + 1, revenue: prevCtry.revenue + amount });
+
+      // Filtro combinado AND: source AND campaign AND country (cualquiera de
+      // los tres puede no estar filtrado y entonces no constraint).
       const matchesSource = !hasSourceFilter || filterSources.has(source);
       const matchesCampaign = !hasCampaignFilter || filterCampaigns.has(campKey);
-      const matchesFilter = matchesSource && matchesCampaign;
+      const matchesCountry = !hasCountryFilter || filterCountries.has(countryKey);
+      const matchesFilter = matchesSource && matchesCampaign && matchesCountry;
       if (matchesFilter) {
         filteredRevenue += amount;
         filteredCount += 1;
@@ -225,7 +256,7 @@ export async function GET(req: NextRequest) {
         productAgg.set(prodName, { count: prev.count + 1, revenue: prev.revenue + amount });
       }
     } else if (status === 'refunded' || status === 'chargeback') {
-      // Refunds: SIN aplicar filtro de UTM (es plata real devuelta total).
+      // Refunds: SIN aplicar filtros (es plata real devuelta total).
       totalRefunded += amount;
       refundedCount += 1;
     }
@@ -250,6 +281,10 @@ export async function GET(req: NextRequest) {
     .map((v) => ({ campaign: v.label, count: v.count, revenue: v.revenue }))
     .sort((a, b) => b.revenue - a.revenue);
 
+  const byCountry = Array.from(countryAgg.entries())
+    .map(([country, v]) => ({ country, count: v.count, revenue: v.revenue }))
+    .sort((a, b) => b.revenue - a.revenue);
+
   return NextResponse.json(
     {
       ok: true,
@@ -266,13 +301,15 @@ export async function GET(req: NextRequest) {
         last7d,
         last30d,
         byProduct,
-        bySource, // siempre completo, así la lista de chips no cambia al filtrar
-        byCampaign, // idem: lista completa de campañas para los chips
+        bySource,    // siempre completo, así la lista de chips no cambia al filtrar
+        byCampaign,  // idem
+        byCountry,   // idem — chips de país completos
         lastSaleAt,
         configured: true,
         filtered: {
           sources: hasSourceFilter ? Array.from(filterSources) : null,
           campaigns: hasCampaignFilter ? Array.from(filterCampaigns) : null,
+          countries: hasCountryFilter ? Array.from(filterCountries) : null,
           count: filteredCount,
           revenue: filteredRevenue,
         },

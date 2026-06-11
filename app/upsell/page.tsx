@@ -22,8 +22,8 @@
  * Precios: lib/quiz-v2/config.ts → PRICING (fuente única de verdad).
  *
  * IMPORTANTE: <UpsellPageTracker page="offer"/> dispara solo ViewContent.
- * El Purchase del front lo dispara el webhook server-side de Shopify
- * (/api/shopify-webhook), que es la fuente de verdad de la venta.
+ * El Purchase del front lo dispara el webhook server-side de Hotmart
+ * (/api/hotmart-webhook), que es la fuente de verdad de la venta.
  */
 
 import { UpsellPageTracker } from '@/components/upsell/UpsellPageTracker';

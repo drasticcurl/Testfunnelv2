@@ -148,7 +148,7 @@ export function OverviewView() {
     ? (funnel.totalSales / funnel.totalCompletes) * 100
     : 0;
 
-  const currency = revenue?.currency ?? 'ARS';
+  const currency = revenue?.currency ?? 'USD';
 
   const revenuePeriods = useMemo(
     () => [
@@ -488,7 +488,7 @@ function RevenueTooltip({ active, payload, currency }: { active?: boolean; paylo
   return (
     <div className="rounded-lg border border-white/10 bg-[#0a0a0f] px-3 py-2 text-xs shadow-xl">
       <div className="font-semibold text-neutral-200">Últimos {d.label}</div>
-      <div className="mt-0.5 text-emerald-400">{formatMoney(d.revenue, currency ?? 'ARS')}</div>
+      <div className="mt-0.5 text-emerald-400">{formatMoney(d.revenue, currency ?? 'USD')}</div>
       <div className="text-neutral-500">{d.count} ventas</div>
     </div>
   );
@@ -506,7 +506,7 @@ function LeadsTooltip({ active, payload }: { active?: boolean; payload?: Array<{
 }
 
 function compactMoney(v: number, currency: string): string {
-  const sym = currency.toUpperCase() === 'ARS' ? '$' : '';
+  const sym = currency.toUpperCase() === 'USD' ? 'US$' : '$';
   if (Math.abs(v) >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(1)}M`;
   if (Math.abs(v) >= 1_000) return `${sym}${Math.round(v / 1_000)}k`;
   return `${sym}${v}`;

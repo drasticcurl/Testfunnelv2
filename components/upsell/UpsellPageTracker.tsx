@@ -6,7 +6,7 @@
  *  - Meta Pixel (client-side) + POST /api/track (CAPI server-side)
  *
  * Solo dispara ViewContent. El "Purchase" del front se dispara ÚNICAMENTE
- * desde el webhook server-side de Shopify (/api/shopify-webhook), que es la
+ * desde el webhook server-side de Hotmart (/api/hotmart-webhook), que es la
  * fuente de verdad de la venta confirmada.
  *
  * Por qué NO disparamos Purchase acá:
