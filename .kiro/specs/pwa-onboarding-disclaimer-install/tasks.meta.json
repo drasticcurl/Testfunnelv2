@@ -1,0 +1,196 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Ampliar el estado de onboarding con el consentimiento del disclaimer": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708423
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942719476
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942899990
+      }
+    ],
+    "2.1 Crear el hook `lib/pwa/use-pwa-install.ts`": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708425
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942908411
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943042038
+      }
+    ],
+    "2.2 Refactorizar `components/pwa/InstallPrompt.tsx` para consumir el hook": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708428
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943055514
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943211267
+      }
+    ],
+    "3.1 Introducir la config declarativa de pasos": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708430
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943218606
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943422610
+      }
+    ],
+    "3.2 Actualizar `nextStep()` para los efectos de salida por paso": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708432
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943431676
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943556315
+      }
+    ],
+    "4. Implementar el componente `StepMedicalDisclaimer` (bloqueante)": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708434
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943567134
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943704438
+      }
+    ],
+    "5. Implementar el componente `StepInstallApp` (no bloqueante)": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708436
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943707018
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943880042
+      }
+    ],
+    "6.1 Tests del gating del disclaimer": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708439
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943891489
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783944201046
+      }
+    ],
+    "6.2 Tests del paso de instalación y del hook": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708441
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783944206578
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783944521537
+      }
+    ],
+    "6.3 Tests de progreso dinámico": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783942708443
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783944524276
+      },
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783944664773
+      }
+    ],
+    "2. Extraer la lógica de instalación a un hook reutilizable `usePwaInstall`": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943211273
+      }
+    ],
+    "3. Refactorizar `app/pwa/onboarding/page.tsx` a una secuencia de pasos declarativa": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783943556317
+      }
+    ],
+    "6. Escribir tests de las propiedades de correctitud": [
+      {
+        "executionId": "92045b94-4844-4ae5-985d-bba8b864a63f",
+        "chatSessionId": "60eae05d-cdd1-4c44-a22b-44a9e6a1e5a6",
+        "timestamp": 1783944664775
+      }
+    ]
+  }
+}

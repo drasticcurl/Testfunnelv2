@@ -23,24 +23,32 @@
   --muted:      #5A6072;
   --muted-light:#9BA3B8;
 
-  /* Estados */
-  --alert:   #E53935;
+  /* Estados (status) */
   --success: #43A047;
   --warning: #F59E0B;
+  --error:   #E53935;
+  --alert:   var(--error); /* alias legado → error */
 
-  /* Legado (para componentes V1 que usan estas vars) */
-  --sage:       #7A9B7E;
-  --sage-soft:  #E8EFE9;
-  --sage-dark:  #5B8A60;
-  --cream:      #FAF7F2;
-  --cream-warm: #F4EFE6;
-  --coral:      #E07856;
-  --coral-soft: #F5C7B6;
-  --sand:       #D4C5A9;
+  /* ───────────────────────────────────────────────────────────────────
+     Legado (tokens V1) — re-mapeados a la paleta canónica terracotta/warm.
+     La paleta actual SIEMPRE gana: cada alias resuelve al token canónico,
+     así que clases como bg-cream / text-sage / border-sand renderizan el
+     sistema actual sin tocar las pantallas. (Requisitos 1.3, 1.6)
+     ─────────────────────────────────────────────────────────────────── */
+  --sage:       var(--terracotta);
+  --sage-soft:  var(--terracotta-soft);
+  --sage-dark:  var(--terracotta-dark);
+  --cream:      var(--warm);
+  --cream-warm: var(--warm-border);
+  --coral:      var(--terracotta-light);
+  --coral-soft: var(--terracotta-soft);
+  --sand:       var(--warm-border);
 
-  /* Tipografía */
-  --font-serif: 'DM Serif Display', 'Georgia', serif;
-  --font-sans:  'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  /* Tipografía — heading/body son los nombres canónicos; serif/sans son alias */
+  --font-heading: 'DM Serif Display', 'Georgia', serif;
+  --font-body:    'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif:   var(--font-heading);
+  --font-sans:    var(--font-body);
 
   /* Spacing */
   --space-1:  0.25rem;
@@ -67,6 +75,20 @@
   --shadow-lg: 0 8px 24px rgba(192, 85, 58, 0.14);
   --shadow-xl: 0 20px 40px rgba(192, 85, 58, 0.18);
   --shadow-cta:0 4px 20px rgba(192, 85, 58, 0.35);
+
+  /* Motion — duraciones, easings y parámetros de stagger */
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+  --stagger-step:  60ms;  /* inter-item delay (banda 40–80ms) */
+  --stagger-cap:   800ms; /* tope acumulado de stagger */
+  --ease-standard:   cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Tamaños de icono */
+  --icon-sm: 16px;
+  --icon-md: 24px;
+  --icon-lg: 32px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -130,6 +152,36 @@ a {
   outline: 2px solid var(--terracotta);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MEDIA RESPONSIVO (base) — imágenes/vídeo/svg nunca exceden su contenedor
+   y conservan su aspect ratio (Requisito 8.5)
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  img,
+  video,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SAFE-AREA INSETS — notch/home indicator (Requisitos 6.7, 8.3)
+   pt-safe → inset superior (header) · pb-safe → inset inferior (BottomNav)
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mt-safe {
+    margin-top: env(safe-area-inset-top, 0px);
+  }
 }
 
 
@@ -602,4 +654,59 @@ input[type='range'].quiz-slider::-moz-range-progress {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   FUNNEL B — TEMA SCOPED rosa/femenino ("mujer")  ·  test full-funnel Argentina
+   ─────────────────────────────────────────────────────────────────────────────
+   ADITIVO: este bloque SOLO se aplica dentro de `[data-funnel="b"]` (el wrapper
+   FunnelBTheme). NO modifica los defaults de `:root`, así que Funnel A y LATAM
+   quedan byte-idénticos. Redefine los design-tokens de marca (familia terracotta,
+   fondos, fuentes y sombras con color de marca) a la paleta rosa/femenina; como
+   todos los componentes consumen `var(--terracotta)` etc., re-tematizan solos
+   dentro del scope. Para los pocos selectores con HEX hardcodeado (btn-primary
+   :hover, news-card__header) se agregan overrides scopeados acá — nunca tocando
+   la regla compartida.
+   ───────────────────────────────────────────────────────────────────────────── */
+[data-funnel="b"] {
+  /* Primarios → rosa/femenino */
+  --terracotta:       #D6336C; /* rosa primario */
+  --terracotta-soft:  #FFF0F6;
+  --terracotta-dark:  #A61E4D;
+  --terracotta-light: #F06595;
+
+  /* Fondos */
+  --warm:        #FFF7FB;
+  --warm-border: #F7E3EC;
+
+  /* Aliases legados → re-mapeados a la paleta rosa scopeada. */
+  --sage:       var(--terracotta);
+  --sage-soft:  var(--terracotta-soft);
+  --sage-dark:  var(--terracotta-dark);
+  --cream:      var(--warm);
+  --cream-warm: var(--warm-border);
+  --coral:      var(--terracotta-light);
+  --coral-soft: var(--terracotta-soft);
+  --sand:       var(--warm-border);
+
+  /* Tipografía — heading femenino (serif). body se mantiene legible. */
+  --font-heading: 'DM Serif Display', 'Georgia', serif;
+  --font-serif:   var(--font-heading);
+
+  /* Sombras con color de marca recomputadas para el rosa. */
+  --shadow-sm: 0 1px 2px rgba(214, 51, 108, 0.05);
+  --shadow-md: 0 4px 12px rgba(214, 51, 108, 0.12);
+  --shadow-lg: 0 8px 24px rgba(214, 51, 108, 0.16);
+  --shadow-xl: 0 20px 40px rgba(214, 51, 108, 0.20);
+  --shadow-cta:0 4px 20px rgba(214, 51, 108, 0.35);
+}
+
+/* Override scopeado de selectores con HEX hardcodeado (no usan var()). */
+[data-funnel="b"] .btn-primary:hover {
+  box-shadow: 0 6px 28px rgba(214, 51, 108, 0.45);
+}
+
+[data-funnel="b"] .news-card__header {
+  background: #D6336C;
 }

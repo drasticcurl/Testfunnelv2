@@ -31,24 +31,30 @@ export default {
         alert:   '#E53935',
         success: '#43A047',
         warning: '#F59E0B',
-        // ─── Legado (mantener para no romper componentes V1) ─────────
+        error:   '#E53935',
+        // ─── Legado — re-mapeado a la paleta canónica terracotta/warm ─
+        //     (mismas hex que los tokens actuales; la paleta actual gana)
         sage: {
-          DEFAULT: '#7A9B7E',
-          soft:    '#E8EFE9',
-          dark:    '#5B8A60',
+          DEFAULT: '#C0553A', // → terracotta
+          soft:    '#FFF5F0', // → terracotta-soft
+          dark:    '#8B3A24', // → terracotta-dark
         },
         cream: {
-          DEFAULT: '#FAF7F2',
-          warm:    '#F4EFE6',
+          DEFAULT: '#FFFAF7', // → warm
+          warm:    '#F0E8E4', // → warm-border
         },
         coral: {
-          DEFAULT: '#E07856',
-          soft:    '#F5C7B6',
+          DEFAULT: '#D4785C', // → terracotta-light
+          soft:    '#FFF5F0', // → terracotta-soft
         },
-        sand:  '#D4C5A9',
+        sand:  '#F0E8E4',     // → warm-border
       },
 
       fontFamily: {
+        // Canónicos
+        heading: ['DM Serif Display', 'Georgia', 'serif'],
+        body:    ['Plus Jakarta Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        // Alias legado → mismas stacks (no rompen pantallas existentes)
         serif: ['DM Serif Display', 'Georgia', 'serif'],
         sans:  ['Plus Jakarta Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
@@ -94,6 +100,29 @@ export default {
         '12': '3rem',
         '16': '4rem',
         '24': '6rem',
+      },
+
+      // ─── Icon-size tokens (w-icon-sm/md/lg, h-icon-sm/md/lg) ──────────
+      width: {
+        'icon-sm': 'var(--icon-sm)',
+        'icon-md': 'var(--icon-md)',
+        'icon-lg': 'var(--icon-lg)',
+      },
+      height: {
+        'icon-sm': 'var(--icon-sm)',
+        'icon-md': 'var(--icon-md)',
+        'icon-lg': 'var(--icon-lg)',
+      },
+
+      // ─── Motion tokens como utilidades ───────────────────────────────
+      transitionDuration: {
+        fast: 'var(--duration-fast)',
+        base: 'var(--duration-base)',
+        slow: 'var(--duration-slow)',
+      },
+      transitionTimingFunction: {
+        standard:   'var(--ease-standard)',
+        emphasized: 'var(--ease-emphasized)',
       },
 
       animation: {

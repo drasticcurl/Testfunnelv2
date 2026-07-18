@@ -12,6 +12,8 @@ import {
   getAllCategories,
 } from '@/lib/pwa/shopping-data';
 import { isTestMode } from '@/lib/pwa/test-mode';
+import { Button } from '@/components/pwa/ui/Button';
+import { Icon } from '@/components/pwa/ui/Icon';
 
 // ─── LocalStorage helpers ───────────────────────────────────
 const STORAGE_KEY = 'pwa_shopping_checked';
@@ -99,14 +101,14 @@ export default function ListaComprasPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ShoppingCart size={24} weight="bold" className="text-sage" />
-          <h1 className="font-serif text-xl text-charcoal">Lista de compras</h1>
+          <ShoppingCart size={24} weight="bold" className="text-terracotta" />
+          <h1 className="font-heading text-xl text-charcoal">Lista de compras</h1>
         </div>
 
         {/* Reset button */}
         <button
           onClick={() => setShowResetConfirm(true)}
-          className="p-2 rounded-lg hover:bg-sage-soft transition-colors text-charcoal/40 hover:text-charcoal/70"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-terracotta-soft transition-colors text-charcoal/40 hover:text-charcoal/70"
           title="Reiniciar semana"
         >
           <ArrowCounterClockwise size={20} />
@@ -122,13 +124,13 @@ export default function ListaComprasPage() {
 
       {/* Progress bar */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs text-charcoal/50">
+        <div className="flex items-center justify-between font-body text-xs text-charcoal/50">
           <span>{checkedCount} de {totalItems} items</span>
-          <span className="font-medium text-sage">{progress}%</span>
+          <span className="font-medium text-terracotta">{progress}%</span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-warm-border rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-sage to-sage-dark rounded-full"
+            className="h-full bg-gradient-to-r from-terracotta to-terracotta-dark rounded-full"
             initial={false}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -161,10 +163,11 @@ export default function ListaComprasPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-sage-soft border border-sage/20 rounded-lg p-4 text-center"
+          className="bg-terracotta-soft border border-terracotta/20 rounded-lg p-4 text-center"
         >
-          <p className="text-sage font-medium text-sm">
-            ✅ ¡Lista completa! Tenés todo para la semana {activeWeek}.
+          <p className="font-body text-terracotta font-medium text-sm flex items-center justify-center gap-2">
+            <Icon name="success" size="sm" decorative className="text-success" />
+            ¡Lista completa! Tenés todo para la semana {activeWeek}.
           </p>
         </motion.div>
       )}
@@ -175,25 +178,19 @@ export default function ListaComprasPage() {
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl space-y-4"
+            className="bg-warm rounded-xl p-6 max-w-sm w-full shadow-xl space-y-4"
           >
-            <h3 className="font-serif text-lg text-charcoal">¿Reiniciar semana {activeWeek}?</h3>
-            <p className="text-sm text-charcoal/60">
+            <h3 className="font-heading text-lg text-charcoal">¿Reiniciar semana {activeWeek}?</h3>
+            <p className="font-body text-sm text-charcoal/60">
               Se van a desmarcar todos los items de esta semana. No se puede deshacer.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className="flex-1 py-2.5 rounded-full border border-charcoal/10 text-sm font-medium text-charcoal/70 hover:bg-cream-warm transition-colors"
-              >
+              <Button variant="outline" onClick={() => setShowResetConfirm(false)} className="flex-1">
                 Cancelar
-              </button>
-              <button
-                onClick={handleReset}
-                className="flex-1 py-2.5 rounded-full bg-coral text-white text-sm font-medium hover:bg-coral/90 transition-colors"
-              >
+              </Button>
+              <Button variant="primary" onClick={handleReset} className="flex-1">
                 Reiniciar
-              </button>
+              </Button>
             </div>
           </motion.div>
         </div>

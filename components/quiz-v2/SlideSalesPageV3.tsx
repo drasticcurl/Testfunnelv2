@@ -5,10 +5,16 @@ import { motion } from 'framer-motion';
 import { useQuizStore } from '@/lib/quiz-v2/store';
 import { calcularDiagnostico, calcularPesoProyectado, getNombre, getInformeResumen, getRecomendaciones } from '@/lib/quiz-v2/helpers';
 import { getMetaCookies, getUTMs, withCheckoutAttribution } from '@/lib/cookies';
-import { PRICING, CHECKOUT_URL } from '@/lib/quiz-v2/config';
+import {
+  PRICING,
+  PRICING_CURRENCY,
+  CHECKOUT_URL,
+} from '@/lib/quiz-v2/config';
+import { peekFunnelVariant, funnelEventName } from '@/lib/quiz-v2/funnelVariant';
+import { UtmifyPixel } from '@/components/UtmifyPixel';
 
-const PRECIO       = PRICING.front.display;
-const PRECIO_ORIG  = PRICING.front.displayOriginal;
+const PRECIO        = PRICING.front.display;
+const VALOR_TOTAL   = '$51.000';
 const COUNTDOWN_SECS = 15 * 60;
 
 const VALUE_STACK = [
@@ -29,8 +35,9 @@ const FAQ = [
   { q: '¿Cómo accedo al plan?', a: 'Inmediatamente después del pago recibís acceso a la app en tu celular. Es una PWA — no necesitás descargar nada del App Store.' },
   { q: '¿El plan está personalizado a mis respuestas?', a: 'Sí. Todo el protocolo está calibrado según tu peso, tu rutina y tu perfil digestivo determinado en el test.' },
   { q: '¿Cuánto tiempo necesito por día?', a: 'Mínimo 5 minutos (preparar el agua de arroz). El protocolo completo lleva 15-20 min.' },
-  { q: '¿Y si no funciona para mí?', a: 'Tenés 30 días de garantía completa. Si no ves resultados, te devolvemos los $6.000 sin preguntas. Un email y listo.' },
+  { q: '¿Y si no funciona para mí?', a: `Tenés 30 días de garantía completa. Si no ves resultados, te devolvemos los ${PRECIO} sin preguntas. Un email y listo.` },
   { q: '¿Necesito comprar suplementos o productos especiales?', a: 'No. Todo el método usa ingredientes que ya tenés en tu casa: arroz, agua, limón y especias básicas.' },
+  { q: '¿Hay alguien que no debería hacer el protocolo?', a: 'Sí. Es un programa alimentario educativo, no reemplaza el consejo médico. Si tenés diabetes, una condición médica diagnosticada (renal, cardíaca, gastrointestinal, etc.), un trastorno alimentario, estás embarazada o amamantando, tomás medicación o sos menor de edad, consultá con tu médico antes de empezar. Ante cualquier malestar, interrumpí y consultá a un profesional.' },
 ];
 
 function formatTime(secs: number) {
@@ -57,10 +64,13 @@ export function SlideSalesPageV3() {
     return () => clearInterval(t);
   }, []);
 
-  // ViewContent tracking
+  // ViewContent + af_<V>_salespage_view (al montar, una sola vez).
   useEffect(() => {
     if (trackedRef.current) return;
     trackedRef.current = true;
+    // Variante full-funnel (read-only: NO asigna una nueva acá). Con el flag OFF
+    // o en LATAM devuelve null y NO se emite ningún af_*.
+    const variant = peekFunnelVariant();
     if (typeof window !== 'undefined') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const w = window as any;
@@ -74,9 +84,21 @@ export function SlideSalesPageV3() {
       body: JSON.stringify({
         event: 'ViewContent', fbc: meta.fbc, fbp: meta.fbp,
         contentName: 'Sales Page V3',
-        custom: { quiz_version: 'v3', nivel_inflamacion: diagnostico.nivelInflamacion, utms },
+        custom: { quiz_version: 'ar', nivel_inflamacion: diagnostico.nivelInflamacion, utms, funnel_variant: variant ?? undefined },
       }),
     }).catch(() => {});
+    // Evento del test full-funnel: la sales page A (control) se vio.
+    if (variant) {
+      fetch('/api/track', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: funnelEventName(variant, 'salespage_view'),
+          fbc: meta.fbc, fbp: meta.fbp,
+          custom: { quiz_version: 'ar', utms, funnel_variant: variant },
+        }),
+      }).catch(() => {});
+    }
   }, [diagnostico.nivelInflamacion]);
 
   const handleCheckout = useCallback(() => {
@@ -85,37 +107,56 @@ export function SlideSalesPageV3() {
       const w = window as any;
       if (w.fbq) w.fbq('track', 'InitiateCheckout');
     }
+    // Registramos el click en "comprar" server-side. El store de /admin/funnel
+    // lo cuenta como checkoutClick. Mandamos los UTMs (capturados en cookies)
+    // para que el click quede atribuido a la campaña, igual que ViewContent.
+    const meta = getMetaCookies();
+    const utms = getUTMs();
+    // Variante full-funnel (read-only: NO asigna una nueva acá).
+    const variant = peekFunnelVariant();
     fetch('/api/track', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
-      body: JSON.stringify({ event: 'InitiateCheckout', custom: { quiz_version: 'v3' } }),
+      body: JSON.stringify({
+        event: 'InitiateCheckout',
+        value: PRICING.front.amount,
+        currency: PRICING_CURRENCY,
+        fbc: meta.fbc, fbp: meta.fbp,
+        custom: { quiz_version: 'ar', utms, funnel_variant: variant ?? undefined },
+      }),
     }).catch(() => {});
+    // Evento del test full-funnel: click en comprar (Funnel A control).
+    if (variant) {
+      fetch('/api/track', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+        body: JSON.stringify({
+          event: funnelEventName(variant, 'checkout'),
+          fbc: meta.fbc, fbp: meta.fbp,
+          custom: { quiz_version: 'ar', utms, funnel_variant: variant },
+        }),
+      }).catch(() => {});
+    }
     // UTMs como cart attributes → Shopify los guarda en la orden (note_attributes),
     // que es lo que el webhook lee de forma confiable. Antes iban solo como query
     // plano y se perdían en el landing_site → ventas en "(directo)".
-    const checkoutUrl = withCheckoutAttribution(CHECKOUT_URL, { src: 'quiz_v3' });
+    // La variante full-funnel (funnel_variant) viaja por el mismo canal para que el
+    // webhook / puente por email atribuya la COMPRA al Funnel A (espejo de V3B).
+    //
+    // SALIDA: checkout Shopify (GET). El tracking de arriba (fbq + /api/track con
+    // keepalive) ya se disparó ANTES de esta salida.
+    const cartAttrs: Record<string, string> = {};
+    if (variant) cartAttrs.funnel_variant = variant;
+    const checkoutUrl = withCheckoutAttribution(
+      CHECKOUT_URL,
+      { src: 'quiz_v3' },
+      Object.keys(cartAttrs).length > 0 ? cartAttrs : undefined,
+    );
     setTimeout(() => { window.open(checkoutUrl, '_self'); }, 150);
   }, []);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--warm)' }}>
-
-      {/* ── STICKY COUNTDOWN BAR ── */}
-      <div
-        className="sticky top-0 z-30 flex items-center justify-between px-4 py-2.5"
-        style={{ backgroundColor: 'var(--alert)' }}
-      >
-        <span className="text-white text-xs font-semibold" style={{ fontFamily: 'var(--font-sans)' }}>
-          🔥 Precio especial solo por hoy — vence en {formatTime(timeLeft)}
-        </span>
-        <button
-          type="button"
-          onClick={handleCheckout}
-          className="text-xs font-bold px-3 py-1.5 rounded-full"
-          style={{ backgroundColor: '#fff', color: 'var(--alert)', fontFamily: 'var(--font-sans)' }}
-        >
-          OBTENER →
-        </button>
-      </div>
+      {/* UTMify pixel — solo en la sales page */}
+      <UtmifyPixel />
 
       {/* ── HERO ── */}
       <section className="px-5 pt-8 pb-6">
@@ -136,7 +177,7 @@ export function SlideSalesPageV3() {
           </div>
 
           <h1 className="text-2xl md:text-3xl leading-tight mb-3" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-serif)' }}>
-            {nombre ? `${nombre}, analicé tus respuestas` : 'Analicé tus respuestas'} y preparé tu plan personalizado
+            {nombre ? `${nombre}, en los primeros días ` : 'En los primeros días '}vas a empezar a deshincharte
           </h1>
 
           <p className="text-sm mb-2" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>
@@ -255,6 +296,40 @@ export function SlideSalesPageV3() {
         </div>
       </section>
 
+      {/* ── VALOR EXTRA: timeline de transformación ── */}
+      <section className="px-5 py-6">
+        <div className="max-w-sm mx-auto">
+          <h2 className="text-xl text-center mb-1" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-serif)' }}>
+            {nombre ? `${nombre}, esto es lo que vas a sentir` : 'Esto es lo que vas a sentir'}
+          </h2>
+          <p className="text-sm text-center mb-5" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>
+            Tu transformación con el método, día a día
+          </p>
+          <div className="flex flex-col gap-3">
+            {[
+              { tag: 'Día 1-2', icon: '🌱', title: 'Arranca el reset digestivo', desc: 'Tu intestino empieza a desinflamarse y a soltar líquidos retenidos.' },
+              { tag: 'Día 3-4', icon: '✨', title: 'Te levantás más liviana', desc: 'Notás la panza más plana al despertar y menos hinchazón después de comer.' },
+              { tag: 'Día 5-7', icon: '👖', title: 'La ropa te queda distinto', desc: 'Más energía durante el día y la ropa que te apretaba empieza a entrar mejor.' },
+              { tag: 'Día 7+', icon: '🧭', title: 'Ya sabés qué te inflama', desc: 'Entendés tu cuerpo y tenés el plan para mantener los resultados.' },
+            ].map((step) => (
+              <div key={step.tag} className="flex items-start gap-3 rounded-2xl p-4 border" style={{ backgroundColor: '#fff', borderColor: 'var(--warm-border)' }}>
+                <span className="text-2xl flex-shrink-0">{step.icon}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--terracotta-soft)', color: 'var(--terracotta)', fontFamily: 'var(--font-sans)' }}>{step.tag}</span>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-sans)' }}>{step.title}</p>
+                  </div>
+                  <p className="text-xs" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-center mt-4" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>
+            Todo guiado paso a paso desde la app, sin dietas restrictivas.
+          </p>
+        </div>
+      </section>
+
       {/* ── EL MÉTODO ── */}
       <section className="px-5 py-6" style={{ backgroundColor: 'var(--terracotta-soft)' }}>
         <div className="max-w-sm mx-auto">
@@ -268,6 +343,27 @@ export function SlideSalesPageV3() {
               <div key={i} className="flex items-start gap-3 rounded-2xl p-4 border" style={{ backgroundColor: '#fff', borderColor: 'var(--warm-border)' }}>
                 <span className="text-2xl flex-shrink-0">{b.icon}</span>
                 <p className="text-sm" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-sans)' }}>{b.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── VALUE STACK ── */}
+      <section className="px-5 py-6" style={{ backgroundColor: 'var(--terracotta-soft)' }}>
+        <div className="max-w-sm mx-auto">
+          <h2 className="text-xl text-center mb-5" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-serif)' }}>Todo lo que incluye tu protocolo</h2>
+          <div className="flex flex-col gap-3">
+            {VALUE_STACK.map((item) => (
+              <div key={item.title} className="flex items-start gap-3 rounded-2xl p-4 border" style={{ backgroundColor: '#fff', borderColor: 'var(--warm-border)' }}>
+                <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-sans)' }}>{item.title}</p>
+                    <span className="text-xs line-through flex-shrink-0" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>{item.value}</span>
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -288,11 +384,13 @@ export function SlideSalesPageV3() {
             <p className="text-sm font-semibold mb-1" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>
               Protocolo Agua de Arroz — Acceso completo
             </p>
-            <div className="flex items-center justify-center gap-3 my-2">
-              <span className="text-lg line-through" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>{PRECIO_ORIG}</span>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <span className="text-sm line-through" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>{VALOR_TOTAL}</span>
+            </div>
+            <div className="my-1">
               <span className="text-4xl font-bold" style={{ color: 'var(--terracotta)', fontFamily: 'var(--font-sans)' }}>{PRECIO}</span>
             </div>
-            <p className="text-xs mb-4" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>= $214 pesos por día · menos que un café</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>= $285 pesos por día · menos que un café</p>
 
             <button type="button" onClick={handleCheckout} className="btn-primary mb-3">
               QUIERO MI PLAN PERSONALIZADO →
@@ -329,36 +427,6 @@ export function SlideSalesPageV3() {
                 </span>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── VALUE STACK ── */}
-      <section className="px-5 py-6" style={{ backgroundColor: 'var(--terracotta-soft)' }}>
-        <div className="max-w-sm mx-auto">
-          <h2 className="text-xl text-center mb-1" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-serif)' }}>Todo lo que incluye tu protocolo</h2>
-          <p className="text-xs text-center mb-5" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>Acceso inmediato después del pago</p>
-          <div className="flex flex-col gap-3">
-            {VALUE_STACK.map((item) => (
-              <div key={item.title} className="flex items-start gap-3 rounded-2xl p-4 border" style={{ backgroundColor: '#fff', borderColor: 'var(--warm-border)' }}>
-                <span className="text-2xl flex-shrink-0 mt-0.5">{item.icon}</span>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-sans)' }}>{item.title}</p>
-                    <span className="text-xs line-through flex-shrink-0" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>{item.value}</span>
-                  </div>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-2xl p-4 text-center border" style={{ backgroundColor: 'var(--terracotta-soft)', borderColor: 'rgba(192,85,58,0.2)' }}>
-            <p className="text-xs mb-1" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>Valor total</p>
-            <p className="text-2xl font-bold line-through mb-1" style={{ color: 'var(--muted-light)', fontFamily: 'var(--font-sans)' }}>$51.000</p>
-            <p className="text-sm font-semibold" style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-sans)' }}>
-              Hoy accedés por <span className="text-xl font-bold" style={{ color: 'var(--terracotta)' }}>{PRECIO}</span>
-            </p>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}>88% de descuento</p>
           </div>
         </div>
       </section>

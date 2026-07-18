@@ -14,7 +14,7 @@ export const MORNING_RITUAL: RitualStep[] = [
     order: 1,
     duration: '2 min',
     title: 'Agua de Arroz en ayunas',
-    description: 'Tomá 1 vaso (200ml) de agua de arroz tibia a temperatura ambiente, despacio, antes de cualquier otra cosa. Preparación la noche anterior: lavá ½ taza de arroz blanco, cubrí con 2 tazas de agua y dejá remojar 8 horas. Por la mañana, colá y tomá el agua. Podés agregar unas gotas de limón.',
+    description: 'Tomá 1 vaso (200 ml) de agua de arroz tibia, despacio, antes de cualquier otra cosa. Se prepara con arroz cocido y enfriado en la heladera 12-24 h (así se activa el almidón resistente), reposado en agua dentro de la heladera durante la noche y colado a la mañana. Entibialo sin hervir y agregale unas gotas de limón. Importante: el arroz cocido siempre va a la heladera, nunca a temperatura ambiente. Mirá la receta completa y segura paso a paso en la Guía del Agua de Arroz.',
     benefit: 'El agua de arroz contiene almidón resistente y amilosa en suspensión que actúan como prebióticos: alimentan las bacterias beneficiosas (Lactobacillus, Bifidobacterium) y aumentan la producción de butirato, un ácido graso de cadena corta que reduce la inflamación intestinal y mejora la permeabilidad de la mucosa. Fuente: Biomolecules 2024, MDPI/NIH.',
     emoji: '🌾',
   },
@@ -58,14 +58,14 @@ El agua de arroz es el primer paso — y el más importante. Los 4 pasos siguien
 
 export const RITUAL_SCIENCE = `¿Por qué funciona el Agua de Arroz?
 
-El agua de arroz en remojo (sin cocinar) libera almidón resistente tipo RS2 y amilosa en el agua. Estos compuestos llegan intactos al intestino grueso, donde las bacterias beneficiosas los fermentan y producen ácidos grasos de cadena corta (AGCC), especialmente butirato.
+Al cocinar el arroz, enfriarlo 12-24 h en la heladera y dejarlo reposar en agua, parte de su almidón se transforma en almidón resistente. Este almidón no se digiere como azúcar: llega intacto al intestino grueso, donde las bacterias beneficiosas lo fermentan y producen ácidos grasos de cadena corta (AGCC), especialmente butirato.
 
 El butirato tiene 3 efectos medibles:
 1. Reduce la inflamación intestinal de bajo grado (inhibe NF-κB, la principal vía proinflamatoria)
 2. Fortalece la barrera intestinal (tight junctions), reduciendo la "permeabilidad intestinal" que causa hinchazón
 3. Mejora la motilidad intestinal, reduciendo la retención de gases y líquidos
 
-Además, el agua de arroz fermentada contiene postbióticos (metabolitos bacterianos) que promueven la salud del colonocito.
+El enfriamiento en la heladera no es opcional: además de activar el almidón resistente, evita que el arroz cocido desarrolle bacterias (Bacillus cereus) a temperatura ambiente.
 
 Fuentes científicas: Biomolecules 2024 (MDPI/NIH), Food Chemistry X 2024 (NIH), Harvard Health 2024, MDPI Fermentation 2023.`;
 

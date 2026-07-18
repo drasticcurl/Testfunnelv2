@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import BottomNav from '@/components/pwa/BottomNav';
-import AppHeader from '@/components/pwa/AppHeader';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
+import PwaShell from '@/components/pwa/PwaShell';
 import { PwaServiceWorker } from './PwaServiceWorker';
 
 export const metadata: Metadata = {
@@ -29,13 +28,7 @@ export const viewport: Viewport = {
 export default function PwaLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-cream">
-      <AppHeader />
-      <main className="pb-20 px-4">
-        <div className="max-w-md mx-auto py-4">
-          {children}
-        </div>
-      </main>
-      <BottomNav />
+      <PwaShell>{children}</PwaShell>
       <InstallPrompt />
       <PwaServiceWorker />
     </div>

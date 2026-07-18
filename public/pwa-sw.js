@@ -2,9 +2,9 @@
 /// Scope: /pwa/
 /// Strategy: cache-first for static assets, network-first for API calls
 
-const CACHE_NAME = 'pwa-cache-v1';
-const STATIC_CACHE = 'pwa-static-v1';
-const DYNAMIC_CACHE = 'pwa-dynamic-v1';
+const CACHE_NAME = 'pwa-cache-v2';
+const STATIC_CACHE = 'pwa-static-v2';
+const DYNAMIC_CACHE = 'pwa-dynamic-v2';
 
 // Static assets to precache on install
 const PRECACHE_URLS = [
@@ -75,6 +75,15 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle GET requests
   if (request.method !== 'GET') return;
+
+  // NUNCA interceptar las requests de React Server Components de Next
+  // (navegación / prefetch del App Router: traen ?_rsc= o el header RSC).
+  // Si las cacheáramos o devolviéramos un 503 "Offline" de texto, el router
+  // recibiría un payload inválido y la página quedaría en blanco. Las dejamos
+  // pasar directo a la red.
+  if (url.searchParams.has('_rsc') || request.headers.get('RSC') === '1') {
+    return;
+  }
 
   // Static assets: cache-first
   if (STATIC_PATTERNS.some((p) => p.test(url.pathname))) {

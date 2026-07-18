@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import BadgeCard, { type Badge } from './BadgeCard';
+import { computeStagger } from '@/lib/pwa/ui/motion';
 
 interface BadgeGridProps {
   badges: Badge[];
@@ -9,6 +10,9 @@ interface BadgeGridProps {
 
 export default function BadgeGrid({ badges }: BadgeGridProps) {
   const unlockedCount = badges.filter((b) => b.unlocked).length;
+
+  // Single consistent, capped inter-item entrance delay for the badge grid.
+  const delays = computeStagger(badges.length);
 
   return (
     <motion.div
@@ -18,8 +22,8 @@ export default function BadgeGrid({ badges }: BadgeGridProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-serif text-lg font-semibold text-charcoal">Logros</h2>
-        <span className="text-xs text-charcoal/50 bg-sage-soft px-2.5 py-1 rounded-full">
+        <h2 className="font-heading text-lg font-semibold text-charcoal">Logros</h2>
+        <span className="font-body text-xs text-charcoal/50 bg-terracotta-soft px-2.5 py-1 rounded-full">
           {unlockedCount}/{badges.length} desbloqueados
         </span>
       </div>
@@ -27,7 +31,7 @@ export default function BadgeGrid({ badges }: BadgeGridProps) {
       {/* Grid */}
       <div className="grid grid-cols-3 gap-3">
         {badges.map((badge, i) => (
-          <BadgeCard key={badge.id} badge={badge} index={i} />
+          <BadgeCard key={badge.id} badge={badge} delayMs={delays[i]} />
         ))}
       </div>
     </motion.div>

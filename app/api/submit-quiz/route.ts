@@ -32,7 +32,15 @@ type SubmitBody = Record<string, unknown> & {
   nombre?: string;
   fbc?: string;
   fbp?: string;
+  funnel_variant?: string;
+  utms?: Record<string, unknown>;
 };
+
+/** Extrae un campo string de un objeto utms arbitrario. */
+function pickUtm(utms: Record<string, unknown> | undefined, key: string): string | undefined {
+  const v = utms?.[key];
+  return typeof v === 'string' && v.length > 0 ? v : undefined;
+}
 
 function severidadBucket(score: number): 'baja' | 'media' | 'alta' {
   if (score >= 8) return 'alta';
@@ -145,28 +153,62 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabase();
   const supabasePromise = supabase
     ? (async () => {
+        // Variante del test full-funnel (la manda el cliente con peekFunnelVariant()).
+        const funnelVariant =
+          body.funnel_variant === 'A' || body.funnel_variant === 'B' ? body.funnel_variant : undefined;
+
+        // Fila base del lead (sin funnel_variant). Es lo crítico a persistir.
+        const baseRow = {
+          email,
+          nombre,
+          apertura: body.apertura as string | undefined,
+          momento: body.momento_del_dia as string | undefined,
+          tiempo: body.tiempo_con_problema as string | undefined,
+          sintomas: Array.isArray(body.sintomas) ? body.sintomas : [],
+          ya_probo: Array.isArray(body.ya_probo) ? body.ya_probo : [],
+          impacto_emocional: body.impacto_emocional as string | undefined,
+          objetivo: body.objetivo as string | undefined,
+          compromiso: body.compromiso as string | undefined,
+          tipo_hinchazon: tipo,
+          severidad,
+          fbc: body.fbc,
+          fbp: body.fbp,
+          // UTMs del lead → puente de atribución por email para la venta
+          // de Tienda Nube (se recuperan por email en /api/track al comprar).
+          utm_source: pickUtm(body.utms, 'utm_source'),
+          utm_medium: pickUtm(body.utms, 'utm_medium'),
+          utm_campaign: pickUtm(body.utms, 'utm_campaign'),
+          utm_content: pickUtm(body.utms, 'utm_content'),
+          utm_term: pickUtm(body.utms, 'utm_term'),
+          fbclid: pickUtm(body.utms, 'fbclid'),
+        };
+
+        // ¿El error indica que la columna funnel_variant todavía no existe?
+        // (migración 011 sin correr). En ese caso reintentamos sin la columna
+        // para NO perder el lead (Req 16.3).
+        const isMissingFunnelVariantColumn = (msg?: string) =>
+          typeof msg === 'string' && msg.toLowerCase().includes('funnel_variant');
+
         try {
+          // 1er intento: con funnel_variant (si vino).
+          const rowWithVariant = funnelVariant ? { ...baseRow, funnel_variant: funnelVariant } : baseRow;
           const { error } = await supabase
             .from('clientes')
-            .upsert(
-              {
-                email,
-                nombre,
-                apertura: body.apertura as string | undefined,
-                momento: body.momento_del_dia as string | undefined,
-                tiempo: body.tiempo_con_problema as string | undefined,
-                sintomas: Array.isArray(body.sintomas) ? body.sintomas : [],
-                ya_probo: Array.isArray(body.ya_probo) ? body.ya_probo : [],
-                impacto_emocional: body.impacto_emocional as string | undefined,
-                objetivo: body.objetivo as string | undefined,
-                compromiso: body.compromiso as string | undefined,
-                tipo_hinchazon: tipo,
-                severidad,
-                fbc: body.fbc,
-                fbp: body.fbp,
-              },
-              { onConflict: 'email' },
-            );
+            .upsert(rowWithVariant, { onConflict: 'email' });
+
+          if (error && funnelVariant && isMissingFunnelVariantColumn(error.message)) {
+            // Reintento sin la columna ausente: el lead se guarda igual.
+            console.warn('[submit-quiz] columna funnel_variant ausente, reintentando sin ella');
+            const { error: retryError } = await supabase
+              .from('clientes')
+              .upsert(baseRow, { onConflict: 'email' });
+            if (retryError) {
+              console.error('[submit-quiz] Supabase upsert error (retry):', retryError.message);
+              return { ok: false, error: retryError.message };
+            }
+            return { ok: true };
+          }
+
           if (error) {
             console.error('[submit-quiz] Supabase upsert error:', error.message);
             return { ok: false, error: error.message };

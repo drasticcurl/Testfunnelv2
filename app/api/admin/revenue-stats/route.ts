@@ -38,6 +38,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/admin/auth';
 import { getSupabase } from '@/lib/supabase';
 import { cleanUtmValue, utmKey } from '@/lib/utm';
+import { resolveRangeFromParam } from '@/lib/admin/range';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -144,21 +145,34 @@ export async function GET(req: NextRequest) {
   const hasCampaignFilter = filterCampaigns !== null && filterCampaigns.size > 0;
   const hasFilter = hasSourceFilter || hasCampaignFilter;
 
-  // ── Query ─────────────────────────────────────────────────────────────────
-  const { data, error } = await supabase
-    .from('purchases')
-    .select('amount, currency, status, product_name, utm_source, utm_campaign, purchased_at, created_at')
-    .order('purchased_at', { ascending: false });
+  // ── Rango temporal (GMT-3). Default: hoy. ────────────────────────────────
+  const range = resolveRangeFromParam(url.searchParams.get('range'));
+  const fromMs = Date.parse(range.fromISO);
+  const toMs = Date.parse(range.toISO); // fin exclusivo
 
-  if (error) {
-    console.error('[admin/revenue-stats] purchases query failed:', error.message);
-    return NextResponse.json(
-      { ok: false, error: 'db_error', detail: error.message },
-      { status: 500 },
-    );
+  // ── Query paginada ─────────────────────────────────────────────────────────
+  // Supabase devuelve máx. 1000 filas por request: paginamos para traer todo.
+  const rows: PurchaseRow[] = [];
+  {
+    const PAGE = 1000;
+    for (let offset = 0; ; offset += PAGE) {
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('amount, currency, status, product_name, utm_source, utm_campaign, purchased_at, created_at')
+        .order('purchased_at', { ascending: false })
+        .range(offset, offset + PAGE - 1);
+      if (error) {
+        console.error('[admin/revenue-stats] purchases query failed:', error.message);
+        return NextResponse.json(
+          { ok: false, error: 'db_error', detail: error.message },
+          { status: 500 },
+        );
+      }
+      const batch = (data as PurchaseRow[] | null) ?? [];
+      rows.push(...batch);
+      if (batch.length < PAGE) break;
+    }
   }
-
-  const rows = (data as PurchaseRow[] | null) ?? [];
 
   // ── Agregaciones ─────────────────────────────────────────────────────────
   const now = Date.now();
@@ -189,45 +203,52 @@ export async function GET(req: NextRequest) {
     const status = (row.status ?? '').toLowerCase();
     const ts = Date.parse(row.purchased_at ?? row.created_at ?? '');
     if (row.currency) detectedCurrency = row.currency;
+    const inRange = Number.isFinite(ts) && ts >= fromMs && ts < toMs;
 
     if (status === 'approved') {
-      approvedCount += 1;
-      totalRevenue += amount;
-
       const source = canonicalSource(row.utm_source);
-      const prevSrc = sourceAgg.get(source) ?? { count: 0, revenue: 0 };
-      sourceAgg.set(source, { count: prevSrc.count + 1, revenue: prevSrc.revenue + amount });
-
       const campKey = campaignKey(row.utm_campaign);
       const campLbl = campaignLabel(row.utm_campaign);
-      const prevCamp = campaignAgg.get(campKey) ?? { label: campLbl, count: 0, revenue: 0 };
-      campaignAgg.set(campKey, { label: prevCamp.label, count: prevCamp.count + 1, revenue: prevCamp.revenue + amount });
-
-      // Filtro combinado: la fila pasa si matchea source (o no hay filtro de source)
-      // Y matchea campaign (o no hay filtro de campaign).
       const matchesSource = !hasSourceFilter || filterSources.has(source);
       const matchesCampaign = !hasCampaignFilter || filterCampaigns.has(campKey);
-      const matchesFilter = matchesSource && matchesCampaign;
-      if (matchesFilter) {
-        filteredRevenue += amount;
-        filteredCount += 1;
+      const matchesUtm = matchesSource && matchesCampaign;
 
-        if (!lastSaleAt && row.purchased_at) lastSaleAt = row.purchased_at;
+      // Ventanas móviles 24h/7d/30d: SIEMPRE rolling (independientes del rango
+      // seleccionado), respetando el filtro de campaña/fuente.
+      if (matchesUtm && Number.isFinite(ts)) {
+        if (ts >= cut24) { last24h.revenue += amount; last24h.count += 1; }
+        if (ts >= cut7)  { last7d.revenue  += amount; last7d.count  += 1; }
+        if (ts >= cut30) { last30d.revenue += amount; last30d.count += 1; }
+      }
 
-        if (Number.isFinite(ts)) {
-          if (ts >= cut24) { last24h.revenue += amount; last24h.count += 1; }
-          if (ts >= cut7)  { last7d.revenue  += amount; last7d.count  += 1; }
-          if (ts >= cut30) { last30d.revenue += amount; last30d.count += 1; }
+      // Todo lo demás se acota al RANGO seleccionado (hoy/semana/mes/…).
+      if (inRange) {
+        // Chips del período (sin filtro utm, para que la lista no se achique).
+        const prevSrc = sourceAgg.get(source) ?? { count: 0, revenue: 0 };
+        sourceAgg.set(source, { count: prevSrc.count + 1, revenue: prevSrc.revenue + amount });
+        const prevCamp = campaignAgg.get(campKey) ?? { label: campLbl, count: 0, revenue: 0 };
+        campaignAgg.set(campKey, { label: prevCamp.label, count: prevCamp.count + 1, revenue: prevCamp.revenue + amount });
+
+        // Totales del período (sin filtro utm).
+        approvedCount += 1;
+        totalRevenue += amount;
+
+        // Filtro combinado (utm) sobre el período → KPIs principales.
+        if (matchesUtm) {
+          filteredRevenue += amount;
+          filteredCount += 1;
+          if (!lastSaleAt && row.purchased_at) lastSaleAt = row.purchased_at;
+          const prodName = (row.product_name ?? '').trim() || 'Sin nombre';
+          const prev = productAgg.get(prodName) ?? { count: 0, revenue: 0 };
+          productAgg.set(prodName, { count: prev.count + 1, revenue: prev.revenue + amount });
         }
-
-        const prodName = (row.product_name ?? '').trim() || 'Sin nombre';
-        const prev = productAgg.get(prodName) ?? { count: 0, revenue: 0 };
-        productAgg.set(prodName, { count: prev.count + 1, revenue: prev.revenue + amount });
       }
     } else if (status === 'refunded' || status === 'chargeback') {
-      // Refunds: SIN aplicar filtro de UTM (es plata real devuelta total).
-      totalRefunded += amount;
-      refundedCount += 1;
+      // Refunds del período: plata real devuelta dentro del rango.
+      if (inRange) {
+        totalRefunded += amount;
+        refundedCount += 1;
+      }
     }
   }
 
@@ -270,6 +291,12 @@ export async function GET(req: NextRequest) {
         byCampaign, // idem: lista completa de campañas para los chips
         lastSaleAt,
         configured: true,
+        range: {
+          preset: range.preset,
+          label: range.label,
+          fromDay: range.fromDay,
+          toDay: range.toDay,
+        },
         filtered: {
           sources: hasSourceFilter ? Array.from(filterSources) : null,
           campaigns: hasCampaignFilter ? Array.from(filterCampaigns) : null,

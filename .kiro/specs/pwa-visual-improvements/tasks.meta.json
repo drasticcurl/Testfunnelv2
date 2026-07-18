@@ -1,0 +1,57 @@
+{
+  "pbtResults": {
+    "2.2 Write property test for token registry completeness": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721404502
+    },
+    "2.3 Write property test for legacy alias resolution": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721406311
+    },
+    "3.1 Write property test for typographic scale monotonicity and body minimum size": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721406495
+    },
+    "4.1 Write property test for approved token-pair contrast (and `contrastRatio` symmetry/bounds)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721407593
+    },
+    "5.1 Write property test for single/zero active item resolution": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721643014
+    },
+    "6.1 Write property test for auth vs non-auth classification": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721644009
+    },
+    "7.1 Write property test for total, monotonic breakpoint classification": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721645037
+    },
+    "8.1 Write property test for stagger band, uniformity, monotonicity, and cap": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721646035
+    },
+    "8.2 Write property test for motion duration upper bounds": {
+      "status": "passed",
+      "lastRunTimestamp": 1782721646665
+    },
+    "12.1 Write property test for label association (jsdom)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782722040359
+    },
+    "13.3 Write property test for EmptyState explanation + next action (jsdom)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782722171634
+    },
+    "13.4 Write property test for ErrorState message/recovery/input preservation (jsdom)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782722172002
+    },
+    "22.1 Write property test asserting localStorage keys/serialized values are byte-for-byte identical to a frozen baseline": {
+      "status": "passed",
+      "lastRunTimestamp": 1782725057704
+    }
+  },
+  "executionHistory": {}
+}

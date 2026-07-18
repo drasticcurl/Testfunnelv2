@@ -8,7 +8,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowClockwise, CurrencyDollar, ShoppingBag, Receipt, ArrowUUpLeft } from '@phosphor-icons/react';
+import { resolveRangeFromParam } from '@/lib/admin/range';
 import {
   SectionCard,
   StatCard,
@@ -38,10 +40,13 @@ type RevenueStats = {
   byCampaign: Array<{ campaign: string; count: number; revenue: number }>;
   lastSaleAt: string | null;
   configured?: boolean;
+  range?: { preset: string; label: string; fromDay: string; toDay: string };
   filtered: { sources: string[] | null; campaigns: string[] | null; count: number; revenue: number };
 };
 
 export function RevenueView() {
+  const searchParams = useSearchParams();
+  const range = resolveRangeFromParam(searchParams.get('range'));
   const [revenueStats, setRevenueStats] = useState<RevenueStats | null>(null);
   const [revenueLoading, setRevenueLoading] = useState(false);
   const [revenueError, setRevenueError] = useState<string | null>(null);
@@ -53,6 +58,7 @@ export function RevenueView() {
     setRevenueError(null);
     try {
       const params = new URLSearchParams();
+      params.set('range', range.preset);
       if (selectedSources.size > 0) params.set('utm_sources', Array.from(selectedSources).join(','));
       if (selectedCampaigns.size > 0) params.set('utm_campaigns', Array.from(selectedCampaigns).join(','));
       const url = `/api/admin/revenue-stats${params.toString() ? `?${params.toString()}` : ''}`;
@@ -67,7 +73,7 @@ export function RevenueView() {
     } finally {
       setRevenueLoading(false);
     }
-  }, [selectedSources, selectedCampaigns]);
+  }, [selectedSources, selectedCampaigns, range.preset]);
 
   useEffect(() => { fetchRevenueStats(); }, [fetchRevenueStats]);
 
@@ -98,7 +104,7 @@ export function RevenueView() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-50">Ventas</h1>
           <p className="mt-1 text-sm text-neutral-400">
-            Revenue real desde Shopify (webhook → Supabase). Solo cuenta compras aprobadas.
+            Revenue real desde Shopify · período: <span className="font-medium text-neutral-200">{range.label}</span> (GMT-3). Solo compras aprobadas.
           </p>
         </div>
         <Button onClick={fetchRevenueStats} disabled={revenueLoading} variant="secondary">

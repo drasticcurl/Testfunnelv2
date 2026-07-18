@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuizStore } from '@/lib/quiz-v2/store';
-import { getNombre } from '@/lib/quiz-v2/helpers';
+import { getNombre, getQuestionText, getQuestionSubtitle, getAcknowledgment } from '@/lib/quiz-v2/helpers';
 import type { SlideV3, QuizOption } from '@/lib/quiz-v2/types';
 
 type QuestionSlide = Extract<SlideV3, { type: 'question' }>;
@@ -43,31 +43,52 @@ export function SlideQuestion({ slide, currentValue, onAnswer, onNext }: Props) 
 
   const isSelected = (value: string) => selected.includes(value);
 
+  // Texto de pregunta/subtítulo personalizado según respuestas previas
+  const questionText = getQuestionText(slide.id as string, slide.question, answers);
+  const subtitle     = getQuestionSubtitle(slide.id as string, slide.subtitle, answers);
+
+  // Chip de microcopy reactivo (refleja una respuesta previa)
+  const acknowledgment = getAcknowledgment(slide.id as string, answers);
+
   // Inyectar nombre en headlines de slides emocionales
   const headline = (() => {
     if (nombre && SLIDES_WITH_NOMBRE.has(slide.id as string)) {
-      return `${nombre}, ${slide.question.charAt(0).toLowerCase()}${slide.question.slice(1)}`;
+      return `${nombre}, ${questionText.charAt(0).toLowerCase()}${questionText.slice(1)}`;
     }
-    return slide.question;
+    return questionText;
   })();
 
   return (
     <div className="w-full max-w-sm mx-auto">
+      {acknowledgment && (
+        <div
+          className="flex items-start gap-2 rounded-2xl px-3.5 py-2.5 mb-4 border"
+          style={{ backgroundColor: 'var(--terracotta-soft)', borderColor: 'var(--warm-border)' }}
+        >
+          <span className="text-base leading-none mt-0.5" aria-hidden="true">{acknowledgment.icon}</span>
+          <p
+            className="text-xs leading-relaxed text-left"
+            style={{ color: 'var(--terracotta-dark)', fontFamily: 'var(--font-sans)' }}
+          >
+            {acknowledgment.text}
+          </p>
+        </div>
+      )}
       <h2
         className="text-2xl md:text-3xl text-center leading-tight mb-2"
         style={{ color: 'var(--charcoal)', fontFamily: 'var(--font-serif)' }}
       >
         {headline}
       </h2>
-      {slide.subtitle && (
+      {subtitle && (
         <p
           className="text-sm text-center mb-6"
           style={{ color: 'var(--muted)', fontFamily: 'var(--font-sans)' }}
         >
-          {slide.subtitle}
+          {subtitle}
         </p>
       )}
-      {!slide.subtitle && <div className="mb-6" />}
+      {!subtitle && <div className="mb-6" />}
 
       <div className="flex flex-col gap-2.5">
         {slide.options.map((opt: QuizOption) => {

@@ -3,6 +3,27 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { MORNING_RITUAL, RITUAL_INTRO, RITUAL_SCIENCE, RITUAL_WEIGHT_LOSS } from '@/lib/pwa/morning-ritual';
+import { RICE_WATER_PATH } from '@/lib/pwa/rice-water';
+import GuideSources from '@/components/pwa/guias/GuideSources';
+
+const RITUAL_SOURCES = [
+  {
+    label: 'MDPI/IJMS 2024 — Ácidos grasos de cadena corta, butirato e inflamación',
+    url: 'https://www.mdpi.com/1422-0067/25/13/7379/html',
+  },
+  {
+    label: 'PMC — Butirato: energía del colonocito y barrera intestinal',
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC11520540/',
+  },
+  {
+    label: 'PubMed — Almidón resistente, microbiota y barrera intestinal',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/38282825/',
+  },
+  {
+    label: 'Harvard Health — Foods that fight inflammation',
+    url: 'https://www.health.harvard.edu/staying-healthy/foods-that-fight-inflammation',
+  },
+];
 
 const container = {
   hidden: { opacity: 0 },
@@ -47,6 +68,26 @@ export default function RitualPage() {
             </p>
           ))}
         </div>
+      </motion.div>
+
+      {/* Link destacado a la receta completa del Agua de Arroz */}
+      <motion.div variants={item}>
+        <Link
+          href={RICE_WATER_PATH}
+          className="block rounded-2xl p-4 border shadow-sm hover:-translate-y-0.5 active:translate-y-0 transition-transform group"
+          style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--terracotta-light))', borderColor: 'rgba(192,85,58,0.3)' }}
+        >
+          <div className="flex items-center gap-3 text-white">
+            <span className="text-2xl">🌾</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-[14px] leading-tight">Receta completa del Agua de Arroz</p>
+              <p className="text-white/85 text-[12px] mt-0.5 leading-relaxed">
+                Cómo prepararla y conservarla de forma segura, paso a paso.
+              </p>
+            </div>
+            <span className="text-white/80 text-lg flex-shrink-0">→</span>
+          </div>
+        </Link>
       </motion.div>
 
       {/* Timeline steps */}
@@ -142,6 +183,11 @@ export default function RitualPage() {
         <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
           El agua de arroz en ayunas. Todos los días. En 3 días vas a sentir la diferencia.
         </p>
+      </motion.div>
+
+      {/* Fuentes */}
+      <motion.div variants={item}>
+        <GuideSources sources={RITUAL_SOURCES} />
       </motion.div>
     </motion.div>
   );

@@ -16,7 +16,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import { sessionSecretStatus } from '@/lib/pwa/session';
 import { isTestMode } from '@/lib/pwa/test-mode';
 
 export const runtime = 'nodejs';
@@ -40,16 +39,19 @@ function envCheck(key: string, opts: { sensitive?: boolean; minLength?: number }
 
 export async function GET() {
   const checks: Record<string, Check> = {
-    // Session config
-    PWA_SESSION_SECRET: (() => {
-      const s = sessionSecretStatus();
-      if (s.ok) return { ok: true, detail: `configurada (${s.length} chars)` };
+    // Auth de la PWA — ahora usa Supabase Auth (email+password).
+    // La anon key es REQUERIDA para que login/registro client-side funcionen.
+    SUPABASE_AUTH: (() => {
+      const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!anon) {
+        return {
+          ok: false,
+          detail: 'NEXT_PUBLIC_SUPABASE_ANON_KEY no configurada (requerida para Supabase Auth)',
+        };
+      }
       return {
-        ok: false,
-        detail:
-          s.reason === 'missing'
-            ? 'no configurada (requerida en producción)'
-            : `solo ${s.length} chars (mínimo 16)`,
+        ok: true,
+        detail: `Supabase Auth listo — NEXT_PUBLIC_SUPABASE_ANON_KEY configurada (${anon.length} chars)`,
       };
     })(),
 

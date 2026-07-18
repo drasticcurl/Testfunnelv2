@@ -1,8 +1,24 @@
 // lib/pwa/foods-data.ts — Contenido de alimentos inflamatorios y antiinflamatorios
+//
+// Revisado con evidencia (2024-2025):
+//  - Alimentos antiinflamatorios y patrón mediterráneo: Harvard Health.
+//  - Mecanismo FODMAP de la hinchazón (fermentación + arrastre de agua → gas):
+//    Monash FODMAP, Harvard Health, MedlinePlus.
+//  - Fibra/almidón resistente → AGCC/butirato → barrera intestinal: NIH/PMC, MDPI.
+// Las fuentes completas se citan al pie de cada guía (componente GuideSources).
+
+export type FoodMechanism =
+  | 'Proinflamatorio'
+  | 'FODMAP (fermenta)'
+  | 'Irritante de la mucosa'
+  | 'Retención de líquidos'
+  | 'Aditivos / procesado';
 
 export type InflammatoryFood = {
   name: string;
   emoji: string;
+  /** Por qué molesta, clasificado por mecanismo principal. */
+  mechanism: FoodMechanism;
   reason: string;
   alternative: string;
 };
@@ -10,222 +26,265 @@ export type InflammatoryFood = {
 export type AntiInflammatoryFood = {
   name: string;
   emoji: string;
+  /** Compuesto/principio activo principal (lo que lo hace funcionar). */
+  compound: string;
   benefit: string;
   howToUse: string;
 };
+
+/** Intro educativa de la guía de inflamatorios. */
+export const INFLAMMATORY_INTRO = `Hay dos motivos distintos por los que un alimento te puede caer mal: porque favorece la inflamación de bajo grado (grasas saturadas, ultraprocesados, azúcar) o porque fermenta en el intestino y produce gas (los FODMAPs: lactosa, fructanos del trigo/cebolla/ajo, legumbres, polioles). Por eso al lado de cada uno te marcamos su mecanismo. No los demonices: sacalos estos 7 días y observá tu cambio.`;
 
 export const INFLAMMATORY_FOODS: InflammatoryFood[] = [
   {
     name: 'Lácteos enteros y quesos duros',
     emoji: '🧀',
-    reason: 'La lactosa fermenta en el intestino y produce gas. Las grasas saturadas alimentan bacterias proinflamatorias.',
-    alternative: 'Kéfir, yogur natural sin azúcar o leche de almendras/avena sin azúcar agregada.',
+    mechanism: 'FODMAP (fermenta)',
+    reason: 'La lactosa es un FODMAP: si no la digerís bien, fermenta en el intestino y produce gas y distensión. Las grasas saturadas, además, favorecen la inflamación.',
+    alternative: 'Kéfir o yogur natural (tienen menos lactosa por fermentación), o leches de almendras/avena sin azúcar. Quesos madurados duros suelen tener muy poca lactosa.',
   },
   {
-    name: 'Gluten en exceso (pan blanco, facturas, galletitas)',
+    name: 'Trigo refinado (pan blanco, facturas, galletitas)',
     emoji: '🍞',
-    reason: 'Aumenta la permeabilidad intestinal en personas sensibles. No hace falta ser celíaca para sentirlo.',
-    alternative: 'Pan de masa madre 100%, pan de centeno integral o tostadas de arroz.',
+    mechanism: 'FODMAP (fermenta)',
+    reason: 'El trigo es alto en fructanos (un FODMAP): para la mayoría, esa fermentación —más que el gluten en sí— es la que hincha. En personas sensibles, además aumenta la permeabilidad intestinal.',
+    alternative: 'Pan de masa madre de fermentación larga (menos fructanos), pan de centeno integral o tostadas de arroz.',
   },
   {
-    name: 'Ultraprocesados (snacks de bolsa)',
+    name: 'Ultraprocesados (snacks de paquete)',
     emoji: '🥨',
-    reason: 'Aditivos, emulsionantes y conservantes alteran la microbiota en menos de 72 horas.',
-    alternative: 'Frutos secos naturales, bastones de zanahoria con hummus o frutas frescas.',
+    mechanism: 'Aditivos / procesado',
+    reason: 'Los emulsionantes y aditivos pueden alterar la microbiota y la capa de moco intestinal, favoreciendo la inflamación. Aportan poco más que calorías vacías.',
+    alternative: 'Frutos secos naturales, bastones de zanahoria con hummus o fruta fresca.',
   },
   {
-    name: 'Edulcorantes artificiales (sucralosa, aspartamo)',
+    name: 'Edulcorantes y polioles (sorbitol, manitol, xilitol)',
     emoji: '🧪',
-    reason: 'Modifican las bacterias intestinales y disparan distensión en horas.',
-    alternative: 'Miel cruda en pequeñas cantidades, stevia de hoja real o fruta madura para endulzar.',
+    mechanism: 'FODMAP (fermenta)',
+    reason: 'Los polioles son FODMAPs: se absorben mal y fermentan, dando gas y a veces efecto laxante. Están en chicles "sin azúcar", caramelos light y productos diet.',
+    alternative: 'Cantidades chicas de miel cruda, fruta madura para endulzar, o stevia de hoja real.',
   },
   {
     name: 'Harinas refinadas',
     emoji: '🥐',
-    reason: 'Pico de glucosa → pico de insulina → más inflamación sistémica. Cero fibra, cero nutrientes.',
-    alternative: 'Harina de almendras, avena integral o quinoa como base de tus comidas.',
+    mechanism: 'Proinflamatorio',
+    reason: 'Pico de glucosa e insulina y casi nada de fibra. Picos repetidos se asocian a más inflamación de bajo grado.',
+    alternative: 'Avena integral, quinoa o harina de almendras como base de tus comidas.',
   },
   {
     name: 'Embutidos y fiambres',
     emoji: '🥓',
-    reason: 'Nitritos + sodio + grasas saturadas. Triple combo inflamatorio que irrita la mucosa.',
-    alternative: 'Pollo a la plancha desmenuzado, huevo duro o hummus como relleno de sándwich.',
+    mechanism: 'Proinflamatorio',
+    reason: 'Carnes procesadas: grasas saturadas + sodio + nitritos. Las carnes rojas y procesadas se asocian a mayor producción de compuestos proinflamatorios.',
+    alternative: 'Pollo a la plancha desmenuzado, huevo duro o hummus como relleno.',
   },
   {
     name: 'Alcohol',
     emoji: '🍷',
-    reason: 'Irrita la mucosa gástrica y altera la microbiota. Hasta una copa cuenta durante estos 7 días.',
-    alternative: 'Agua con gas + limón + jengibre. Kombucha sin azúcar. Té helado casero.',
+    mechanism: 'Irritante de la mucosa',
+    reason: 'Irrita la mucosa digestiva y altera la microbiota. Durante estos 7 días, hasta una copa cuenta.',
+    alternative: 'Agua con gas + limón + jengibre, o té helado casero sin azúcar.',
   },
   {
     name: 'Gaseosas (incluso light)',
     emoji: '🥤',
-    reason: 'Gas + edulcorantes + acidez. La hinchazón es inmediata y la inflamación se acumula.',
-    alternative: 'Agua con rodajas de pepino y menta. Té verde frío. Agua de coco natural.',
+    mechanism: 'FODMAP (fermenta)',
+    reason: 'Doble golpe: el gas distiende directamente y los edulcorantes/polioles fermentan. La hinchazón suele ser inmediata.',
+    alternative: 'Agua con rodajas de pepino y menta, o agua de coco natural.',
   },
   {
     name: 'Frituras y aceites recalentados',
     emoji: '🍟',
-    reason: 'Generan compuestos oxidados que inflaman a nivel celular y sobrecargan el hígado.',
-    alternative: 'Cocciones al horno, plancha, vapor o salteados rápidos con aceite de oliva virgen.',
+    mechanism: 'Proinflamatorio',
+    reason: 'Las grasas oxidadas por el recalentado generan compuestos que inflaman a nivel celular y sobrecargan la digestión.',
+    alternative: 'Horno, plancha, vapor o salteados rápidos con aceite de oliva virgen.',
   },
   {
-    name: 'Soja procesada',
+    name: 'Legumbres y crucíferas mal preparadas',
     emoji: '🫘',
-    reason: 'No es la soja en sí, es lo que le agregan. Lectinas + aislados proteicos + aditivos industriales.',
-    alternative: 'Tofu firme orgánico, tempeh o edamame al natural (formas fermentadas o enteras).',
+    mechanism: 'FODMAP (fermenta)',
+    reason: 'Las legumbres (GOS) y las crucíferas crudas en cantidad fermentan y dan gases. El problema no es el alimento: es la cantidad y la preparación.',
+    alternative: 'Remojá las legumbres 12 h y cocinalas bien; empezá con porciones chicas. Cociná las crucíferas (mejor toleradas que crudas).',
   },
   {
-    name: 'Exceso de cafeína (más de 3 tazas)',
+    name: 'Exceso de cafeína (más de 2-3 tazas)',
     emoji: '☕',
-    reason: 'Estresa la mucosa intestinal y dispara cortisol, que ralentiza la digestión.',
-    alternative: 'Máximo 1-2 cafés por día. Reemplazá el resto por té verde o infusión de jengibre.',
+    mechanism: 'Irritante de la mucosa',
+    reason: 'En exceso estimula de más la motilidad y la secreción ácida, y eleva el cortisol, que enlentece la digestión.',
+    alternative: 'Máximo 1-2 cafés por día; reemplazá el resto por té verde o infusión de jengibre.',
   },
   {
     name: 'Exceso de sal y caldos en cubo',
     emoji: '🧂',
-    reason: 'Retención de líquidos e hinchazón generalizada. Los cubitos traen glutamato y aditivos.',
-    alternative: 'Sal marina en cantidad moderada, hierbas frescas, limón y especias para condimentar.',
+    mechanism: 'Retención de líquidos',
+    reason: 'El sodio en exceso retiene líquidos e hincha. Los cubitos suman glutamato y aditivos.',
+    alternative: 'Sal marina con moderación, hierbas frescas, limón y especias. Caldo casero en lugar de cubo.',
   },
   {
     name: 'Azúcar refinada y jarabe de maíz',
     emoji: '🍬',
-    reason: 'Alimenta bacterias patógenas, dispara inflamación sistémica y altera la microbiota en horas. Está oculta en jugos envasados, cereales comerciales y golosinas.',
-    alternative: 'Fruta fresca para lo dulce, miel cruda o dátiles en cantidades pequeñas.',
+    mechanism: 'Proinflamatorio',
+    reason: 'Favorece bacterias menos beneficiosas y la inflamación de bajo grado. Está oculta en jugos envasados, cereales y golosinas.',
+    alternative: 'Fruta fresca para lo dulce, o miel cruda y dátiles en cantidades pequeñas.',
   },
   {
-    name: 'Alimentos fermentables sin preparación adecuada',
-    emoji: '🫛',
-    reason: 'Legumbres sin remojo y crucíferas crudas en grandes cantidades generan gases excesivos al fermentar sin control en el intestino.',
-    alternative: 'Remojar legumbres 12h con bicarbonato. Cocinar bien las crucíferas o comerlas en porciones chicas.',
+    name: 'Exceso de fructosa (jugos, miel en cantidad, frutas muy dulces juntas)',
+    emoji: '🍯',
+    mechanism: 'FODMAP (fermenta)',
+    reason: 'En exceso, la fructosa se absorbe mal y fermenta (es un FODMAP). Un vaso de jugo concentra la fructosa de varias frutas sin su fibra.',
+    alternative: 'Comé la fruta entera (con su fibra) y de a una porción. Mejor manzana, kiwi o frutos rojos que jugos.',
   },
 ];
+
+/** Intro educativa de la guía de antiinflamatorios. */
+export const ANTI_INFLAMMATORY_INTRO = `Estos alimentos trabajan por tres vías: aportan polifenoles y omega-3 que bajan la inflamación (la base del patrón mediterráneo), enzimas que mejoran la digestión, y fibra/almidón resistente que tus bacterias convierten en butirato —un compuesto que nutre y protege la pared del intestino. Al lado de cada uno te marcamos su principio activo.`;
 
 export const ANTI_INFLAMMATORY_FOODS: AntiInflammatoryFood[] = [
   {
     name: 'Jengibre',
     emoji: '🫚',
-    benefit: 'Acelera el vaciado gástrico y reduce la sensación de distensión en menos de 30 minutos.',
-    howToUse: 'Rallá 1 cm en tus infusiones, smoothies o sopas. También funciona en rodajas hervidas como té.',
+    compound: 'Gingeroles',
+    benefit: 'Acelera el vaciado gástrico y ayuda con la dispepsia y la sensación de pesadez después de comer.',
+    howToUse: 'Rallá 1 cm en infusiones, sopas o smoothies. También en rodajas hervidas como té.',
   },
   {
     name: 'Cúrcuma',
     emoji: '🟡',
-    benefit: 'Antiinflamatorio natural. Su curcumina calma la mucosa intestinal directamente.',
-    howToUse: 'Agregá ¼ cdita a yogur, sopas o huevos. Siempre con pimienta negra (multiplica absorción x20).',
+    compound: 'Curcumina',
+    benefit: 'La curcumina modula vías inflamatorias. Ojo: sola se absorbe muy poco; la pimienta negra multiplica su biodisponibilidad.',
+    howToUse: 'Agregá ¼ cdita a yogur, sopas o huevos, SIEMPRE con pimienta negra y algo de grasa (mejora la absorción).',
   },
   {
     name: 'Palta / aguacate',
     emoji: '🥑',
-    benefit: 'Grasas monoinsaturadas que nutren bacterias amigas. Saciedad real sin inflamar.',
-    howToUse: 'Media palta al día: en tostadas, bowls, ensaladas o como reemplazo de manteca.',
+    compound: 'Grasas monoinsaturadas',
+    benefit: 'Grasas buenas + fibra que dan saciedad real y nutren bacterias amigas, sin hinchar.',
+    howToUse: 'Media palta al día: en tostadas, bowls o como reemplazo de manteca.',
   },
   {
-    name: 'Salmón (o sardinas/caballa)',
+    name: 'Salmón (o sardinas / caballa)',
     emoji: '🐟',
-    benefit: 'Omega 3 EPA y DHA. Bajan la inflamación a nivel sistémico y protegen la mucosa.',
-    howToUse: '2-3 veces por semana a la plancha con limón. Las sardinas en lata son igual de buenas.',
+    compound: 'Omega-3 EPA y DHA',
+    benefit: 'Los omega-3 EPA y DHA son de los antiinflamatorios alimentarios más respaldados por la evidencia.',
+    howToUse: '2-3 veces por semana a la plancha con limón. Las sardinas en lata son igual de válidas y baratas.',
   },
   {
     name: 'Kiwi',
     emoji: '🥝',
-    benefit: 'Su enzima actinidina mejora la digestión de proteínas y combate el estreñimiento naturalmente.',
-    howToUse: '1 kiwi al día con el desayuno o como snack. Mejor maduro y a temperatura ambiente.',
+    compound: 'Actinidina (enzima)',
+    benefit: 'Su enzima actinidina ayuda a digerir proteínas y mejora el tránsito (útil si tendés al estreñimiento).',
+    howToUse: '1 kiwi al día, mejor maduro y a temperatura ambiente.',
   },
   {
     name: 'Papaya / mamón',
     emoji: '🍈',
-    benefit: 'Papaína: enzima digestiva natural que descompone proteínas y reduce la hinchazón post-comida.',
-    howToUse: 'Una rodaja en ayunas cambia tu mañana. Si no conseguís, reemplazá por ananá.',
+    compound: 'Papaína (enzima)',
+    benefit: 'Enzima digestiva que ayuda a descomponer proteínas y a reducir la pesadez post-comida.',
+    howToUse: 'Una rodaja en ayunas. Si no conseguís, reemplazá por ananá.',
   },
   {
     name: 'Ananá / piña',
     emoji: '🍍',
-    benefit: 'Bromelina: otra enzima potente que reduce inflamación intestinal y mejora la digestión.',
-    howToUse: 'En cubos como snack, en smoothies o como postre después del almuerzo.',
+    compound: 'Bromelina (enzima)',
+    benefit: 'La bromelina ayuda a la digestión de proteínas y tiene efecto antiinflamatorio.',
+    howToUse: 'En cubos como snack o postre después del almuerzo.',
   },
   {
     name: 'Hojas verdes (espinaca, rúcula, kale)',
     emoji: '🥬',
-    benefit: 'Magnesio + clorofila + fibra suave. Antiretención y alimentan tu microbiota.',
-    howToUse: 'Base de tus ensaladas y bowls. 2 puñados grandes por día. Crudas o salteadas 1 minuto.',
+    compound: 'Polifenoles + magnesio',
+    benefit: 'Verdura de hoja rica en polifenoles antiinflamatorios, magnesio y fibra suave. Pilar del patrón mediterráneo.',
+    howToUse: 'Base de ensaladas y bowls: 2 puñados por día, crudas o salteadas 1 minuto.',
   },
   {
-    name: 'Kéfir (leche o agua)',
+    name: 'Kéfir (de leche o de agua)',
     emoji: '🥛',
-    benefit: 'Probiótico real con más de 30 cepas. Repobla la microbiota mejor que cualquier yogur comercial.',
-    howToUse: '200ml por día, en ayunas o con el desayuno. El de agua es ideal si no tolerás lácteos.',
+    compound: 'Probióticos (multicepa)',
+    benefit: 'Fermentado con muchas cepas vivas: aporta probióticos para diversificar la microbiota.',
+    howToUse: '~200 ml por día, en ayunas o con el desayuno. El de agua va si no tolerás lácteos.',
   },
   {
     name: 'Yogur natural sin azúcar',
     emoji: '🍶',
-    benefit: 'Probióticos vivos si la etiqueta dice solo "leche + cultivos". Mejora la flora sin inflamar.',
-    howToUse: 'Como base de desayunos con frutas y semillas. Evitá los que tienen azúcar o saborizantes.',
+    compound: 'Probióticos',
+    benefit: 'Si la etiqueta dice solo "leche + cultivos", aporta bacterias vivas. La fermentación baja su lactosa.',
+    howToUse: 'Base de desayunos con fruta y semillas. Evitá los azucarados o saborizados.',
   },
   {
     name: 'Nueces',
     emoji: '🌰',
-    benefit: 'Omega 3 vegetal y polifenoles antiinflamatorios. Mejoran la diversidad de tu microbiota.',
-    howToUse: 'Un puñado (5-7 unidades) por día como snack o picadas sobre ensaladas y bowls.',
+    compound: 'Omega-3 vegetal (ALA) + polifenoles',
+    benefit: 'Omega-3 vegetal y polifenoles que mejoran la diversidad de la microbiota.',
+    howToUse: 'Un puñado (5-7) por día como snack o sobre ensaladas.',
   },
   {
     name: 'Chía',
     emoji: '🫘',
-    benefit: 'Fibra soluble que forma un gel protector de la mucosa y mejora el tránsito intestinal.',
-    howToUse: '1 cucharada en yogur, smoothies o agua con limón. Dejala hidratar 10 min antes.',
+    compound: 'Fibra soluble + ALA',
+    benefit: 'Fibra soluble que forma un gel, mejora el tránsito y alimenta bacterias productoras de butirato.',
+    howToUse: '1 cda en yogur, smoothies o agua. Dejala hidratar 10 min antes.',
   },
   {
     name: 'Lino / linaza molida',
     emoji: '🌾',
-    benefit: 'Lignanos antiinflamatorios + omega 3 vegetal. Se absorben mucho mejor molida que entera.',
-    howToUse: '1 cucharadita sobre avena, ensaladas o yogur. Guardala en la heladera una vez molida.',
+    compound: 'Lignanos + ALA',
+    benefit: 'Lignanos antiinflamatorios y omega-3 vegetal. Se aprovecha mucho mejor molida que entera.',
+    howToUse: '1 cdita sobre avena, ensaladas o yogur. Guardala en la heladera una vez molida.',
   },
   {
     name: 'Té verde',
     emoji: '🍵',
-    benefit: 'Catequinas (EGCG): potente antiinflamatorio que protege la mucosa intestinal.',
-    howToUse: 'Reemplazá tu segundo café del día por un té verde. Funciona caliente o frío.',
+    compound: 'Catequinas (EGCG)',
+    benefit: 'Polifenoles (EGCG) con efecto antiinflamatorio y antioxidante.',
+    howToUse: 'Reemplazá tu segundo café por un té verde. Caliente o frío.',
   },
   {
     name: 'Agua tibia con limón',
     emoji: '🍋',
-    benefit: 'Estimula la producción de bilis y prepara el sistema digestivo para el día.',
-    howToUse: 'Primera cosa de la mañana, antes de cualquier alimento. Agua tibia (no hirviendo) + ½ limón.',
+    compound: 'Hidratación + vitamina C',
+    benefit: 'Hidrata al despertar y suma un gesto suave para arrancar el día (la hidratación ayuda al tránsito).',
+    howToUse: 'Primera cosa de la mañana: agua tibia (no hirviendo) + ½ limón.',
   },
   {
     name: 'Banana',
     emoji: '🍌',
-    benefit: 'Prebiótico natural que alimenta bacterias buenas (fructooligosacáridos). Suave y fácil de digerir.',
-    howToUse: 'Como snack, en smoothies o rodajas sobre avena. Mejor no demasiado verde (puede dar gases).',
+    compound: 'Prebióticos (fructooligosacáridos)',
+    benefit: 'Prebiótico que alimenta bacterias buenas. Mejor algo madura pero no en exceso (muy verde puede dar gases).',
+    howToUse: 'Como snack, en smoothies o sobre la avena.',
   },
   {
     name: 'Ajo',
     emoji: '🧄',
-    benefit: 'Alicina: antimicrobiano natural que equilibra la microbiota y reduce bacterias patógenas.',
+    compound: 'Alicina',
+    benefit: 'La alicina tiene efecto antimicrobiano. (Es alto en fructanos: si te hincha, usá poca cantidad o aceite de ajo.)',
     howToUse: '1-2 dientes por día en cocciones. Picalo y dejalo reposar 10 min antes de cocinar para activar la alicina.',
   },
   {
     name: 'Caldo de huesos',
     emoji: '🍲',
-    benefit: 'Glutamina + colágeno + glicina: los tres reparadores más potentes para la mucosa intestinal.',
-    howToUse: '1 taza en ayunas o como base de sopas. Cocción lenta de huesos (12-24h) con vinagre de manzana.',
+    compound: 'Glutamina + colágeno + glicina',
+    benefit: 'Aporta glutamina y glicina, nutrientes que se estudian por su rol en la barrera intestinal.',
+    howToUse: '1 taza en ayunas o como base de sopas. Cocción lenta (12-24 h) con un chorrito de vinagre de manzana.',
   },
   {
     name: 'Manzana verde',
     emoji: '🍏',
-    benefit: 'Pectina: fibra soluble que calma la inflamación y alimenta las bacterias beneficiosas.',
-    howToUse: 'Como snack con almendras, asada con canela o rallada sobre la avena del desayuno.',
+    compound: 'Pectina (fibra soluble)',
+    benefit: 'La pectina alimenta bacterias beneficiosas. (Cocida o rallada se tolera mejor que cruda en cantidad.)',
+    howToUse: 'Como snack con almendras, asada con canela o rallada sobre la avena.',
   },
   {
     name: 'Pepino',
     emoji: '🥒',
-    benefit: 'Hidratante natural + antiretención. Bajísimo en FODMAPs, así que no genera gases.',
-    howToUse: 'En ensaladas, en agua saborizada o como bastones para dippear con hummus.',
+    compound: 'Agua + bajo en FODMAP',
+    benefit: 'Hidratante, refrescante y bajo en FODMAPs: no genera gases, ideal contra la retención.',
+    howToUse: 'En ensaladas, en agua saborizada o en bastones para dippear con hummus.',
   },
   {
     name: 'Semillas de calabaza',
     emoji: '🎃',
-    benefit: 'Zinc + magnesio: los 2 minerales clave para la integridad intestinal y la función enzimática.',
-    howToUse: '1 puñado (30g) como snack, sobre ensaladas o en yogur. Tostadas en sartén quedan riquísimas.',
+    compound: 'Zinc + magnesio',
+    benefit: 'Zinc y magnesio, dos minerales clave para las enzimas digestivas y la función intestinal.',
+    howToUse: 'Un puñado (30 g) como snack, sobre ensaladas o en yogur. Quedan ricas tostadas en sartén.',
   },
 ];

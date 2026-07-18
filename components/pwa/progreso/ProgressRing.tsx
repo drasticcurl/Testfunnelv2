@@ -11,7 +11,7 @@ interface ProgressRingProps {
   strokeWidth?: number;
   /** Label inside the ring */
   label?: string;
-  /** Color of the progress arc */
+  /** Color of the progress arc (Design_Token reference by default). */
   color?: string;
 }
 
@@ -20,7 +20,7 @@ export default function ProgressRing({
   size = 160,
   strokeWidth = 12,
   label,
-  color = '#7A9B7E',
+  color = 'var(--terracotta)',
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -35,7 +35,7 @@ export default function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#E8EFE9"
+          stroke="var(--warm-border)"
           strokeWidth={strokeWidth}
         />
         {/* Progress arc */}
@@ -56,7 +56,7 @@ export default function ProgressRing({
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.span
-          className="font-serif text-3xl font-bold text-charcoal"
+          className="font-heading text-3xl font-bold text-charcoal"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}
@@ -64,7 +64,7 @@ export default function ProgressRing({
           {percent}%
         </motion.span>
         {label && (
-          <span className="text-[11px] text-charcoal/50 mt-0.5">{label}</span>
+          <span className="font-body text-[11px] text-charcoal/50 mt-0.5">{label}</span>
         )}
       </div>
     </div>

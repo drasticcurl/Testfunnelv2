@@ -2,7 +2,35 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { INFLAMMATORY_FOODS } from '@/lib/pwa/foods-data';
+import { INFLAMMATORY_FOODS, INFLAMMATORY_INTRO, type FoodMechanism } from '@/lib/pwa/foods-data';
+import GuideSources from '@/components/pwa/guias/GuideSources';
+
+const MECHANISM_STYLE: Record<FoodMechanism, string> = {
+  'Proinflamatorio': 'bg-coral-soft/40 text-coral',
+  'FODMAP (fermenta)': 'bg-amber-100 text-amber-700',
+  'Irritante de la mucosa': 'bg-coral-soft/30 text-coral/80',
+  'Retención de líquidos': 'bg-sage-soft text-sage',
+  'Aditivos / procesado': 'bg-charcoal/10 text-charcoal/60',
+};
+
+const INFLAMATORIOS_SOURCES = [
+  {
+    label: 'Harvard Health — Foods that fight inflammation',
+    url: 'https://www.health.harvard.edu/staying-healthy/foods-that-fight-inflammation',
+  },
+  {
+    label: 'Monash University — FODMAPs e hinchazón (IBS Central)',
+    url: 'https://www.monashfodmap.com/ibs-central/i-have-ibs/research/',
+  },
+  {
+    label: 'Harvard Health — Should you stop eating FODMAPs?',
+    url: 'https://www.health.harvard.edu/healthbeat/should-you-stop-eating-fodmaps',
+  },
+  {
+    label: 'MedlinePlus — Low-FODMAP diet',
+    url: 'https://medlineplus.gov/ency/patientinstructions/000984.htm',
+  },
+];
 
 const container = {
   hidden: { opacity: 0 },
@@ -38,11 +66,10 @@ export default function InflamatoriosPage() {
       {/* Header */}
       <motion.div variants={item}>
         <h1 className="font-serif text-2xl font-semibold text-charcoal">
-          Los 14 alimentos que te inflaman
+          Los alimentos que te inflaman
         </h1>
         <p className="text-charcoal/60 text-sm mt-2 leading-relaxed">
-          Estos son los que vas a evitar durante los 7 días. No los demonices — 
-          solo sacalos temporalmente y observá el cambio.
+          {INFLAMMATORY_INTRO}
         </p>
       </motion.div>
 
@@ -58,12 +85,19 @@ export default function InflamatoriosPage() {
               <span className="text-lg">{food.emoji}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-charcoal text-[14px] leading-tight">
-                {food.name}
-              </h3>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold text-charcoal text-[14px] leading-tight">
+                  {food.name}
+                </h3>
+                <span
+                  className={`text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${MECHANISM_STYLE[food.mechanism]}`}
+                >
+                  {food.mechanism}
+                </span>
+              </div>
               <div className="mt-2 space-y-1.5">
                 <p className="text-[13px] text-charcoal/70 leading-relaxed">
-                  <span className="font-medium text-coral/80">Por qué inflama:</span>{' '}
+                  <span className="font-medium text-coral/80">Por qué molesta:</span>{' '}
                   {food.reason}
                 </p>
                 <p className="text-[13px] text-charcoal/70 leading-relaxed">
@@ -85,6 +119,11 @@ export default function InflamatoriosPage() {
           <span className="font-semibold">Regla práctica:</span> si tiene más de 5 ingredientes 
           en la etiqueta o uno que no podrías comprar suelto en la verdulería, dejalo afuera estos 7 días.
         </p>
+      </motion.div>
+
+      {/* Fuentes */}
+      <motion.div variants={item}>
+        <GuideSources sources={INFLAMATORIOS_SOURCES} />
       </motion.div>
     </motion.div>
   );
