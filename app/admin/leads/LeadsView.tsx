@@ -11,7 +11,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowClockwise, UsersThree, UserMinus, CalendarBlank, DownloadSimple } from '@phosphor-icons/react';
+import { resolveRangeFromParam } from '@/lib/admin/range';
 import {
   Card,
   SectionCard,
@@ -20,12 +22,12 @@ import {
   Button,
   Spinner,
   formatNumber,
-  formatRelativeDate,
   formatPct,
 } from '@/components/admin/ui';
 
 type LeadsStats = {
   totalLeads: number;
+  totalAllTime?: number;
   nonBuyers: number;
   buyers: number;
   last24h: number;
@@ -33,9 +35,12 @@ type LeadsStats = {
   last30d: number;
   lastLeadAt: string | null;
   configured?: boolean;
+  range?: { preset: string; label: string; fromDay: string; toDay: string };
 };
 
 export function LeadsView() {
+  const searchParams = useSearchParams();
+  const range = resolveRangeFromParam(searchParams.get('range'));
   const [leadsStats, setLeadsStats] = useState<LeadsStats | null>(null);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadsError, setLeadsError] = useState<string | null>(null);
@@ -46,7 +51,7 @@ export function LeadsView() {
     setLeadsLoading(true);
     setLeadsError(null);
     try {
-      const res = await fetch('/api/admin/leads-stats', { cache: 'no-store', credentials: 'same-origin' });
+      const res = await fetch(`/api/admin/leads-stats?range=${range.preset}`, { cache: 'no-store', credentials: 'same-origin' });
       if (res.status === 401) { window.location.href = '/admin'; return; }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as { ok: boolean; data: LeadsStats };
@@ -57,7 +62,7 @@ export function LeadsView() {
     } finally {
       setLeadsLoading(false);
     }
-  }, []);
+  }, [range.preset]);
 
   useEffect(() => { fetchLeadsStats(); }, [fetchLeadsStats]);
 
@@ -120,9 +125,11 @@ export function LeadsView() {
       {/* KPIs */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Total leads"
+          label="Leads del período"
           value={formatNumber(leadsStats?.totalLeads)}
-          subtitle={leadsStats?.lastLeadAt ? `último: ${formatRelativeDate(leadsStats.lastLeadAt)}` : undefined}
+          subtitle={leadsStats?.totalAllTime != null
+            ? `${formatNumber(leadsStats.totalAllTime)} en total · ${range.label}`
+            : range.label}
           accent="amber"
           icon={<UsersThree size={18} weight="bold" />}
         />

@@ -11,8 +11,13 @@
 --   - /api/hotmart-webhook   (legacy, mientras siga activo)
 --
 -- Quién la lee:
---   - /api/pwa/auth/login    (login PWA: email + status='approved')
---   - lib/pwa/access.ts      (acceso: cualquier compra aprobada = acceso total)
+--   - lib/pwa/access.ts      (acceso: cualquier usuario autenticado con Supabase
+--                             Auth tiene acceso total; esta tabla ya no controla
+--                             el login)
+--
+-- NOTA: tras migrar la PWA a Supabase Auth (email+password), la autenticación
+-- ya NO se basa en esta tabla. `purchases` se conserva solo para métricas/stats
+-- (ventas, revenue) y queda escrita por los webhooks.
 --
 -- RLS: deshabilitada (solo acceso vía service_role key del backend).
 

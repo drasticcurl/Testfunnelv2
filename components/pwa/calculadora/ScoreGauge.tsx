@@ -11,6 +11,9 @@ interface ScoreGaugeProps {
 /**
  * Gauge SVG semicircular animado con framer-motion.
  * Score de 0 (rojo) a 10 (verde), arco de 180°.
+ *
+ * Los colores se referencian desde los Design_Tokens (var(--token)) en lugar de
+ * literales hex embebidos (Requisito 1.2/7.3).
  */
 export default function ScoreGauge({ score, size = 240, showLabel = true }: ScoreGaugeProps) {
   const strokeWidth = 18;
@@ -54,12 +57,12 @@ export default function ScoreGauge({ score, size = 240, showLabel = true }: Scor
   // Circumferencia del semicírculo para animación
   const halfCircumference = Math.PI * radius;
 
-  // Color según score
+  // Color según score — referenciado desde los Design_Tokens.
   function getScoreColor(s: number): string {
-    if (s >= 8) return '#5B8A60'; // sage-dark / success
-    if (s >= 6) return '#7A9B7E'; // sage
-    if (s >= 4) return '#D9A441'; // warning
-    return '#C25450'; // error
+    if (s >= 8) return 'var(--success)';
+    if (s >= 6) return 'var(--terracotta)';
+    if (s >= 4) return 'var(--warning)';
+    return 'var(--error)';
   }
 
   const scoreColor = getScoreColor(score);
@@ -71,7 +74,7 @@ export default function ScoreGauge({ score, size = 240, showLabel = true }: Scor
         <path
           d={bgPath}
           fill="none"
-          stroke="#E8EFE9"
+          stroke="var(--warm-border)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
@@ -95,10 +98,10 @@ export default function ScoreGauge({ score, size = 240, showLabel = true }: Scor
           x={cx}
           y={cy - 15}
           textAnchor="middle"
-          className="font-serif"
+          className="font-heading"
           fontSize="42"
           fontWeight="600"
-          fill="#2D3A2E"
+          fill="var(--charcoal)"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.8 }}
@@ -113,7 +116,7 @@ export default function ScoreGauge({ score, size = 240, showLabel = true }: Scor
           textAnchor="middle"
           fontSize="14"
           fontWeight="500"
-          fill="#9B9890"
+          fill="var(--muted-light)"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 1.2 }}
@@ -122,17 +125,17 @@ export default function ScoreGauge({ score, size = 240, showLabel = true }: Scor
         </motion.text>
 
         {/* Labels extremos */}
-        <text x={strokeWidth / 2 + 5} y={cy + 30} fontSize="11" fill="#9B9890" textAnchor="start">
+        <text x={strokeWidth / 2 + 5} y={cy + 30} fontSize="11" fill="var(--muted-light)" textAnchor="start">
           0
         </text>
-        <text x={size - strokeWidth / 2 - 5} y={cy + 30} fontSize="11" fill="#9B9890" textAnchor="end">
+        <text x={size - strokeWidth / 2 - 5} y={cy + 30} fontSize="11" fill="var(--muted-light)" textAnchor="end">
           10
         </text>
       </svg>
 
       {showLabel && (
         <motion.p
-          className="text-center text-sm font-medium mt-1"
+          className="font-body text-center text-sm font-medium mt-1"
           style={{ color: scoreColor }}
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}

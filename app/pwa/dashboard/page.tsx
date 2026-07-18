@@ -7,18 +7,27 @@ import { useRouter } from 'next/navigation';
 import { usePwaUser } from '@/lib/pwa/use-pwa-user';
 import { getLogsFromStorage } from '@/lib/pwa/diary-helpers';
 import { isOnboardingCompleted } from '@/lib/pwa/onboarding-state';
+import { RICE_WATER_PATH } from '@/lib/pwa/rice-water';
+import { Icon } from '@/components/pwa/ui/Icon';
+import { computeStagger } from '@/lib/pwa/ui/motion';
+
+// Entrance stagger driven by the shared scheduler (single consistent inter-item
+// delay within the 40–80 ms band, capped at 800 ms). The global
+// prefers-reduced-motion block neutralizes the underlying animation.
+const ENTRANCE_DELAYS = computeStagger(9);
 
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.07 },
-  },
+  show: { opacity: 1 },
 };
 
 const item = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+  show: (delayMs: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: 'easeOut', delay: delayMs / 1000 },
+  }),
 };
 
 const PROGRESS_KEY = 'pwa_day_progress';
@@ -128,96 +137,120 @@ export default function PwaDashboardPage() {
       {/* Welcome banner */}
       <motion.div
         variants={item}
-        className="bg-gradient-to-br from-sage/10 to-sage-soft rounded-2xl p-5 border border-sage/15"
+        custom={ENTRANCE_DELAYS[0]}
+        className="bg-gradient-to-br from-terracotta/10 to-terracotta-soft rounded-lg p-5 border border-terracotta/15"
       >
-        <p className="text-charcoal/60 text-sm">{greeting}, {nombre} 👋</p>
-        <h1 className="font-serif text-xl font-semibold text-charcoal mt-1">
+        {/* Caption level: body family, small, muted token. */}
+        <p className="font-body text-muted text-sm">{greeting}, {nombre} 👋</p>
+        {/* Section-heading level: heading family, 20px, semibold. */}
+        <h1 className="font-heading text-xl font-semibold text-charcoal mt-1">
           Día {currentDay} de tu protocolo TURBO
         </h1>
-        <p className="text-charcoal/60 text-sm mt-2 leading-relaxed">
+        <p className="font-body text-muted text-sm mt-2 leading-relaxed">
           {streak > 3
             ? `¡Llevás ${streak} días seguidos! Tu cuerpo ya lo nota.`
             : 'Cada pequeño paso te acerca a sentirte mejor.'}
         </p>
       </motion.div>
 
+      {/* Card destacada: Agua de Arroz — el método central */}
+      <motion.div variants={item} custom={ENTRANCE_DELAYS[1]}>
+        <Link
+          href={RICE_WATER_PATH}
+          className="block rounded-lg p-5 shadow-md border border-terracotta/30 bg-gradient-to-br from-terracotta to-terracotta-light hover:-translate-y-0.5 active:translate-y-0 transition-transform group"
+        >
+          <div className="flex items-center gap-3 text-warm">
+            <div className="w-11 h-11 rounded-md bg-warm/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl">🌾</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-body font-semibold text-base leading-tight">Tu Agua de Arroz de hoy</h2>
+              <p className="font-body text-warm/85 text-sm mt-0.5 leading-relaxed">
+                La receta segura paso a paso. El método central, todas las mañanas.
+              </p>
+            </div>
+            <span className="text-warm/80 text-lg flex-shrink-0" aria-hidden="true">→</span>
+          </div>
+        </Link>
+      </motion.div>
+
       {/* Card: Día actual con progreso */}
-      <motion.div variants={item}>
+      <motion.div variants={item} custom={ENTRANCE_DELAYS[2]}>
         <Link
           href={`/pwa/plan/${currentDay}`}
-          className="block bg-white rounded-2xl p-5 shadow-sm border border-sand/20 hover:border-sage/30 transition-colors group"
+          className="block bg-warm rounded-lg p-5 shadow-md border border-warm-border hover:border-terracotta/30 transition-colors duration-fast ease-standard group"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-sage-soft flex items-center justify-center">
-                <span className="text-xl">📋</span>
+              <div className="w-11 h-11 rounded-md bg-terracotta-soft flex items-center justify-center text-terracotta">
+                <Icon name="plan" size="md" decorative />
               </div>
               <div>
-                <h2 className="font-semibold text-charcoal text-[15px]">Día {currentDay}</h2>
-                <p className="text-charcoal/50 text-xs">
+                <h2 className="font-body font-semibold text-charcoal text-base">Día {currentDay}</h2>
+                <p className="font-body text-muted text-sm">
                   {currentDay <= 7 ? 'Fase de limpieza' : currentDay <= 14 ? 'Reincorporación' : currentDay <= 21 ? 'Optimización' : 'Mantenimiento'}
                 </p>
               </div>
             </div>
-            <span className="text-charcoal/30 group-hover:text-sage transition-colors text-lg">→</span>
+            <span className="text-muted-light group-hover:text-terracotta transition-colors duration-fast ease-standard text-lg" aria-hidden="true">→</span>
           </div>
-          <div className="w-full h-2 bg-cream-warm rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-warm-border rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-sage to-sage-dark rounded-full"
+              className="h-full bg-gradient-to-r from-terracotta to-terracotta-dark rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${dayPercent}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.3 }}
             />
           </div>
-          <p className="text-[11px] text-charcoal/40 mt-1.5">{dayPercent}% del plan completado</p>
+          <p className="font-body text-sm text-muted-light mt-1.5">{dayPercent}% del plan completado</p>
         </Link>
       </motion.div>
 
       {/* Card: Registrar hoy */}
-      <motion.div variants={item}>
+      <motion.div variants={item} custom={ENTRANCE_DELAYS[3]}>
         <Link
           href={todayLogged ? '/pwa/diario' : '/pwa/diario/nuevo'}
-          className="block bg-white rounded-2xl p-5 shadow-sm border border-sand/20 hover:border-sage/30 transition-colors group"
+          className="block bg-warm rounded-lg p-5 shadow-md border border-warm-border hover:border-terracotta/30 transition-colors duration-fast ease-standard group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-coral-soft/40 flex items-center justify-center">
-                <span className="text-xl">{todayLogged ? '✅' : '📝'}</span>
+              <div className={`w-11 h-11 rounded-md flex items-center justify-center ${todayLogged ? 'bg-success/15 text-success' : 'bg-terracotta-soft text-terracotta'}`}>
+                <Icon name={todayLogged ? 'success' : 'diary'} size="md" decorative />
               </div>
               <div>
-                <h2 className="font-semibold text-charcoal text-[15px]">
+                <h2 className="font-body font-semibold text-charcoal text-base">
                   {todayLogged ? 'Registro de hoy ✓' : '¿Cómo estás hoy?'}
                 </h2>
-                <p className="text-charcoal/50 text-xs">
+                <p className="font-body text-muted text-sm">
                   {todayLogged ? 'Ver tu diario de síntomas' : 'Registrá cómo te sentís'}
                 </p>
               </div>
             </div>
-            <span className="text-charcoal/30 group-hover:text-sage transition-colors text-lg">→</span>
+            <span className="text-muted-light group-hover:text-terracotta transition-colors duration-fast ease-standard text-lg" aria-hidden="true">→</span>
           </div>
           {lastBloating && (
-            <div className="mt-3 flex items-center gap-4 text-xs text-charcoal/50">
-              <span>Último registro: AM <strong className="text-charcoal/70">{lastBloating.am}/10</strong></span>
-              <span>PM <strong className="text-charcoal/70">{lastBloating.pm}/10</strong></span>
+            <div className="mt-3 flex items-center gap-4 font-body text-sm text-muted">
+              <span>Último registro: AM <strong className="text-charcoal">{lastBloating.am}/10</strong></span>
+              <span>PM <strong className="text-charcoal">{lastBloating.pm}/10</strong></span>
             </div>
           )}
         </Link>
       </motion.div>
 
       {/* Streak + Score row */}
-      <motion.div variants={item} className="grid grid-cols-2 gap-3">
+      <motion.div variants={item} custom={ENTRANCE_DELAYS[4]} className="grid grid-cols-2 gap-3">
         {/* Streak */}
         <Link
           href="/pwa/progreso"
-          className="bg-sage-soft rounded-2xl p-4 border border-sage/15 hover:border-sage/30 transition-colors"
+          className="bg-terracotta-soft rounded-lg p-4 border border-terracotta/15 hover:border-terracotta/30 transition-colors duration-fast ease-standard"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-              <span className="text-xl">{streak >= 3 ? '🔥' : '✨'}</span>
+            <div className="w-10 h-10 rounded-full bg-warm flex items-center justify-center shadow-sm text-terracotta">
+              {streak >= 3 ? <Icon name="streak" size="md" decorative /> : <span className="text-xl">✨</span>}
             </div>
             <div>
-              <p className="font-serif text-xl font-bold text-charcoal">{streak}</p>
-              <p className="text-charcoal/60 text-[11px]">
+              <p className="font-heading text-xl font-bold text-charcoal">{streak}</p>
+              <p className="font-body text-muted text-xs">
                 {streak === 1 ? 'día de racha' : 'días de racha'}
               </p>
             </div>
@@ -227,131 +260,131 @@ export default function PwaDashboardPage() {
         {/* Microbiota score */}
         <Link
           href="/pwa/calculadora"
-          className="bg-cream-warm rounded-2xl p-4 border border-sand/20 hover:border-sage/30 transition-colors"
+          className="bg-warm-border rounded-lg p-4 border border-warm-border hover:border-terracotta/30 transition-colors duration-fast ease-standard"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-warm flex items-center justify-center shadow-sm">
               <span className="text-xl">🧬</span>
             </div>
             <div>
-              <p className="font-serif text-xl font-bold text-charcoal">
+              <p className="font-heading text-xl font-bold text-charcoal">
                 {microbiotaScore !== null ? microbiotaScore.toFixed(1) : '—'}
               </p>
-              <p className="text-charcoal/60 text-[11px]">score microbiota</p>
+              <p className="font-body text-muted text-xs">score microbiota</p>
             </div>
           </div>
         </Link>
       </motion.div>
 
       {/* Tus herramientas */}
-      <motion.div variants={item}>
-        <p className="text-xs uppercase tracking-wider text-charcoal/40 font-medium mb-3">
+      <motion.div variants={item} custom={ENTRANCE_DELAYS[5]}>
+        <p className="font-body text-xs uppercase tracking-wider text-muted-light font-medium mb-3">
           Tus herramientas
         </p>
         <div className="grid grid-cols-2 gap-3">
           <Link
             href="/pwa/guias/ritual"
-            className="bg-gradient-to-br from-cream-warm to-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-gradient-to-br from-warm-border to-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-sage-soft flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md bg-terracotta-soft flex items-center justify-center">
               <span className="text-lg">🌅</span>
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Ritual de mañana</span>
+            <span className="font-body text-xs font-medium text-charcoal">Ritual de mañana</span>
           </Link>
           <Link
             href="/pwa/guias/suplementacion"
-            className="bg-gradient-to-br from-cream-warm to-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-gradient-to-br from-warm-border to-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-sage-soft flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md bg-terracotta-soft flex items-center justify-center">
               <span className="text-lg">💊</span>
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Suplementación</span>
+            <span className="font-body text-xs font-medium text-charcoal">Suplementación</span>
           </Link>
           <Link
             href="/pwa/guias/inflamatorios"
-            className="bg-gradient-to-br from-cream-warm to-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-gradient-to-br from-warm-border to-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-coral-soft/30 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md bg-terracotta-soft flex items-center justify-center">
               <span className="text-lg">🚫</span>
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Inflamatorios</span>
+            <span className="font-body text-xs font-medium text-charcoal">Inflamatorios</span>
           </Link>
           <Link
             href="/pwa/guias/antiinflamatorios"
-            className="bg-gradient-to-br from-cream-warm to-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-gradient-to-br from-warm-border to-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-sage-soft flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md bg-terracotta-soft flex items-center justify-center">
               <span className="text-lg">🌿</span>
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Antiinflamatorios</span>
+            <span className="font-body text-xs font-medium text-charcoal">Antiinflamatorios</span>
           </Link>
         </div>
       </motion.div>
 
       {/* Kit Express card */}
-      <motion.div variants={item}>
+      <motion.div variants={item} custom={ENTRANCE_DELAYS[6]}>
         <Link
           href="/pwa/kit-express"
-          className="block bg-gradient-to-r from-coral-soft/30 to-coral-soft/10 rounded-2xl p-5 shadow-sm border border-coral-soft/30 hover:border-coral/30 transition-colors group"
+          className="block bg-gradient-to-r from-terracotta-soft to-warm rounded-lg p-5 shadow-md border border-terracotta/20 hover:border-terracotta/40 transition-colors duration-fast ease-standard group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-coral-soft/50 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-md bg-terracotta-soft flex items-center justify-center">
                 <span className="text-xl">⚡</span>
               </div>
               <div>
-                <h2 className="font-semibold text-charcoal text-[15px]">Kit Express</h2>
-                <p className="text-charcoal/50 text-xs">
+                <h2 className="font-body font-semibold text-charcoal text-base">Kit Express</h2>
+                <p className="font-body text-muted text-sm">
                   Menú SOS · Meal Prep · Swaps
                 </p>
               </div>
             </div>
-            <span className="text-charcoal/30 group-hover:text-coral transition-colors text-lg">→</span>
+            <span className="text-muted-light group-hover:text-terracotta transition-colors duration-fast ease-standard text-lg" aria-hidden="true">→</span>
           </div>
         </Link>
       </motion.div>
 
       {/* Quick actions 2x2 */}
-      <motion.div variants={item}>
-        <p className="text-xs uppercase tracking-wider text-charcoal/40 font-medium mb-3">
+      <motion.div variants={item} custom={ENTRANCE_DELAYS[7]}>
+        <p className="font-body text-xs uppercase tracking-wider text-muted-light font-medium mb-3">
           Accesos rápidos
         </p>
         <div className="grid grid-cols-2 gap-3">
           <Link
             href="/pwa/plan"
-            className="bg-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-sage-soft flex items-center justify-center">
-              <span className="text-lg">📋</span>
+            <div className="w-10 h-10 rounded-md bg-terracotta-soft flex items-center justify-center text-terracotta">
+              <Icon name="plan" size="md" decorative />
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Plan día a día</span>
+            <span className="font-body text-xs font-medium text-charcoal">Plan día a día</span>
           </Link>
           <Link
             href="/pwa/recetas"
-            className="bg-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-coral-soft/40 flex items-center justify-center">
-              <span className="text-lg">🍽️</span>
+            <div className="w-10 h-10 rounded-md bg-terracotta-soft flex items-center justify-center text-terracotta">
+              <Icon name="recipes" size="md" decorative />
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Recetas</span>
+            <span className="font-body text-xs font-medium text-charcoal">Recetas</span>
           </Link>
           <Link
             href="/pwa/lista-compras"
-            className="bg-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-cream-warm flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md bg-warm-border flex items-center justify-center">
               <span className="text-lg">🛒</span>
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Lista compras</span>
+            <span className="font-body text-xs font-medium text-charcoal">Lista compras</span>
           </Link>
           <Link
             href="/pwa/progreso"
-            className="bg-white rounded-2xl p-4 shadow-sm border border-sand/20 flex flex-col items-center gap-2 text-center hover:border-sage/30 transition-colors"
+            className="bg-warm rounded-lg p-4 shadow-sm border border-warm-border flex flex-col items-center gap-2 text-center hover:border-terracotta/30 transition-colors duration-fast ease-standard"
           >
-            <div className="w-10 h-10 rounded-xl bg-sage-soft flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md bg-terracotta-soft flex items-center justify-center">
               <span className="text-lg">🏆</span>
             </div>
-            <span className="text-xs font-medium text-charcoal/70">Progreso</span>
+            <span className="font-body text-xs font-medium text-charcoal">Progreso</span>
           </Link>
         </div>
       </motion.div>
@@ -359,13 +392,14 @@ export default function PwaDashboardPage() {
       {/* Motivational tip */}
       <motion.div
         variants={item}
-        className="bg-white rounded-2xl p-4 shadow-sm border border-sand/20"
+        custom={ENTRANCE_DELAYS[8]}
+        className="bg-warm rounded-lg p-4 shadow-sm border border-warm-border"
       >
         <div className="flex items-start gap-3">
-          <span className="text-lg mt-0.5">💡</span>
+          <Icon name="info" size="md" decorative className="text-terracotta mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-charcoal">Tip del día</p>
-            <p className="text-xs text-charcoal/60 mt-1 leading-relaxed">
+            <p className="font-body text-sm font-medium text-charcoal">Tip del día</p>
+            <p className="font-body text-xs text-muted mt-1 leading-relaxed">
               Masticá cada bocado 20 veces. La digestión empieza en la boca y reduce la hinchazón hasta un 30%.
             </p>
           </div>

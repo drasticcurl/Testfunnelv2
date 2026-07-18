@@ -28,7 +28,7 @@ interface ChartDataPoint {
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white rounded-lg shadow-md border border-sage-soft p-2 text-xs">
+    <div className="bg-warm rounded-lg shadow-md border border-warm-border p-2 font-body text-xs">
       <p className="font-medium text-charcoal mb-1">{label}</p>
       {payload.map((entry: { color: string; name: string; value: number }) => (
         <p key={entry.name} style={{ color: entry.color }}>
@@ -57,8 +57,8 @@ export default function SymptomChart({ logs, days }: SymptomChartProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <span className="text-4xl mb-3">📊</span>
-        <p className="text-charcoal font-medium">Empezá tu primer registro</p>
-        <p className="text-sm text-charcoal/60 mt-1">
+        <p className="font-body text-charcoal font-medium">Empezá tu primer registro</p>
+        <p className="font-body text-sm text-muted mt-1">
           El gráfico aparece después de tu primer entrada
         </p>
       </div>
@@ -69,36 +69,36 @@ export default function SymptomChart({ logs, days }: SymptomChartProps) {
     <div className="w-full h-52">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E8EFE9" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#F0E8E4" />
           <XAxis
             dataKey="dateLabel"
-            tick={{ fontSize: 10, fill: '#2D3A2E' }}
+            tick={{ fontSize: 10, fill: '#1F2433' }}
             tickLine={false}
-            axisLine={{ stroke: '#E8EFE9' }}
+            axisLine={{ stroke: '#F0E8E4' }}
           />
           <YAxis
             domain={[1, 10]}
-            tick={{ fontSize: 10, fill: '#2D3A2E' }}
+            tick={{ fontSize: 10, fill: '#1F2433' }}
             tickLine={false}
-            axisLine={{ stroke: '#E8EFE9' }}
+            axisLine={{ stroke: '#F0E8E4' }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Line
             type="monotone"
             dataKey="bloating_am"
-            stroke="#7A9B7E"
+            stroke="#C0553A"
             strokeWidth={2.5}
-            dot={{ fill: '#7A9B7E', r: 4 }}
-            activeDot={{ r: 6, stroke: '#7A9B7E', strokeWidth: 2, fill: 'white' }}
+            dot={{ fill: '#C0553A', r: 4 }}
+            activeDot={{ r: 6, stroke: '#C0553A', strokeWidth: 2, fill: '#FFFAF7' }}
             name="bloating_am"
           />
           <Line
             type="monotone"
             dataKey="bloating_pm"
-            stroke="#E07856"
+            stroke="#D4785C"
             strokeWidth={2.5}
-            dot={{ fill: '#E07856', r: 4 }}
-            activeDot={{ r: 6, stroke: '#E07856', strokeWidth: 2, fill: 'white' }}
+            dot={{ fill: '#D4785C', r: 4 }}
+            activeDot={{ r: 6, stroke: '#D4785C', strokeWidth: 2, fill: '#FFFAF7' }}
             name="bloating_pm"
           />
         </LineChart>

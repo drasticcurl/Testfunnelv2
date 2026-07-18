@@ -162,14 +162,7 @@ export interface BarDescription {
  * Se personalizan según la zona donde acumula y las horas de sueño.
  */
 export function getBarDescriptions(answers: QuizAnswers, d: DiagnosisResult): BarDescription {
-  const acumula = answers.donde_acumula;
-  const zona =
-    acumula === 'abdomen' ? 'el abdomen'
-    : acumula === 'cintura' ? 'la cintura'
-    : acumula === 'piernas' ? 'las piernas'
-    : acumula === 'brazos' ? 'los brazos'
-    : acumula === 'espalda' ? 'la espalda'
-    : 'la zona media';
+  const zona = getZonaLabel(answers);
 
   const duermePoco = answers.horas_sueno === 'menos_5h' || answers.horas_sueno === '5_6h';
 
@@ -353,6 +346,142 @@ export function getNombre(answers: QuizAnswers): string {
   const n = answers.nombre;
   if (!n || typeof n !== 'string') return '';
   return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+}
+
+// ─── TEXTO DINÁMICO DE PREGUNTAS ──────────────────────────────────────────────
+
+/**
+ * Devuelve la zona donde la usuaria acumula grasa, con artículo, lista para
+ * insertar tras una preposición ("en {zona}"). Reutilizado por el diagnóstico
+ * y por el texto dinámico de las preguntas.
+ */
+export function getZonaLabel(answers: QuizAnswers): string {
+  switch (answers.donde_acumula) {
+    case 'abdomen': return 'el abdomen';
+    case 'cintura': return 'la cintura';
+    case 'piernas': return 'las piernas';
+    case 'brazos':  return 'los brazos';
+    case 'espalda': return 'la espalda';
+    case 'cara':    return 'la cara';
+    default:        return 'la zona media';
+  }
+}
+
+/**
+ * Texto de la pregunta personalizado según respuestas previas.
+ * Las preguntas que no se personalizan devuelven `baseQuestion` sin cambios.
+ */
+export function getQuestionText(id: string, baseQuestion: string, answers: QuizAnswers): string {
+  switch (id) {
+    // Slide 6: usa la zona elegida en vez de hardcodear "la panza".
+    // El sujeto del verbo es "la grasa" → "afecta" queda bien con cualquier zona.
+    case 'como_afecta':
+      return `¿Cómo afecta la grasa acumulada en ${getZonaLabel(answers)} en tu vida diaria?`;
+
+    // Slide 9: adapta la pregunta a si probó dietas antes (slide 7).
+    case 'no_es_tu_culpa':
+      switch (answers.conforme_panza) {
+        case 'si_muchas':
+          return '¿Estás de acuerdo con la Lic. Natalia en que el fracaso de todas las dietas que probaste NO ES TU CULPA?';
+        case 'si_alguna':
+          return '¿Estás de acuerdo con la Lic. Natalia en que haber recuperado el peso NO ES TU CULPA?';
+        case 'primera_vez':
+          return '¿Estás de acuerdo con la Lic. Natalia en que no haber encontrado un método que funcione hasta ahora NO ES TU CULPA?';
+        default:
+          return baseQuestion;
+      }
+
+    default:
+      return baseQuestion;
+  }
+}
+
+/**
+ * Subtítulo de la pregunta personalizado según respuestas previas.
+ * Las preguntas que no se personalizan devuelven `baseSubtitle` sin cambios.
+ */
+export function getQuestionSubtitle(
+  id: string,
+  baseSubtitle: string | undefined,
+  answers: QuizAnswers,
+): string | undefined {
+  const impide = answers.impide_deshincharse ?? [];
+
+  switch (id) {
+    // Slide 9: subtítulo según el obstáculo principal (slide 8).
+    case 'no_es_tu_culpa':
+      if (impide.includes('metabolismo_lento'))
+        return 'Tu metabolismo lento es una respuesta biológica, no una falla de voluntad.';
+      if (impide.includes('ansiedad_comida'))
+        return 'La ansiedad por la comida es una señal de tu intestino, no falta de fuerza de voluntad.';
+      if (impide.includes('retencion'))
+        return 'La retención de líquidos tiene una causa biológica que se puede corregir.';
+      return baseSubtitle;
+
+    // Slide 17: subtítulo reactivo que conecta el agua con su perfil.
+    case 'agua_dia': {
+      const lograr = answers.que_queres_lograr ?? [];
+      if (impide.includes('retencion'))
+        return 'La hidratación es clave para combatir la retención de líquidos que marcaste antes.';
+      if (lograr.includes('deshinchar'))
+        return 'El agua es la base para deshinchar: queremos ver de dónde partís.';
+      return 'Casi terminamos — esto nos ayuda a ajustar tu protocolo de hidratación.';
+    }
+
+    default:
+      return baseSubtitle;
+  }
+}
+
+// ─── MICROCOPY REACTIVO (chips de "te escuché") ──────────────────────────────
+
+export interface Acknowledgment {
+  /** Emoji que acompaña el chip. */
+  icon: string;
+  /** Frase corta de validación que refleja una respuesta previa. */
+  text: string;
+}
+
+/**
+ * Devuelve un "chip" de microcopy reactivo para mostrar arriba de la pregunta,
+ * reflejando una respuesta previa para que el quiz se sienta personalizado.
+ * Devuelve `null` cuando no hay nada relevante que mostrar (no metemos relleno).
+ *
+ * Solo 2 momentos activos:
+ *  - `donde_acumula` (slide 3): reacciona a la edad respondida en el slide 1.
+ *  - `impide_deshincharse` (slide 8): reacciona a si probó dietas antes (slide 7).
+ */
+export function getAcknowledgment(id: string, answers: QuizAnswers): Acknowledgment | null {
+  switch (id) {
+    // Reacciona a la EDAD (slide 1) — aparece en la pregunta siguiente.
+    case 'donde_acumula': {
+      const edad = answers.edad;
+      if (typeof edad !== 'number') return null;
+      if (edad >= 45)
+        return { icon: '🔬', text: `A partir de los ${edad}, el cuerpo cambia dónde y cómo acumula grasa. No es tu imaginación.` };
+      if (edad >= 35)
+        return { icon: '🔬', text: `Pasados los 35, el metabolismo se vuelve más lento y el cuerpo empieza a acumular distinto.` };
+      return { icon: '🔬', text: `Incluso antes de los 35, el estrés y los hábitos ya cambian cómo tu cuerpo acumula grasa.` };
+    }
+
+    // Reacciona a si YA PROBÓ ANTES (slide 7) — aparece en la pregunta siguiente.
+    case 'impide_deshincharse':
+      switch (answers.conforme_panza) {
+        case 'si_muchas':
+          return { icon: '💬', text: 'Tiene sentido tu frustración. Ahora vas a entender por qué ninguna funcionó.' };
+        case 'si_alguna':
+          return { icon: '💬', text: 'Recuperar el peso es lo más común — y tiene una causa concreta que se puede corregir.' };
+        case 'pocas':
+          return { icon: '💬', text: 'No hace falta haber probado mil cosas. Vamos a entender qué te frena.' };
+        case 'primera_vez':
+          return { icon: '💬', text: 'Mejor todavía: vas a empezar bien desde el principio, sin arrastrar errores.' };
+        default:
+          return null;
+      }
+
+    default:
+      return null;
+  }
 }
 
 // ─── Legacy aliases (para no romper imports de V2) ───────────────────────────

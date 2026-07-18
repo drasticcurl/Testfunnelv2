@@ -1,52 +1,63 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Icon } from '@/components/pwa/ui/Icon';
+import { usePwaInstall } from '@/lib/pwa/use-pwa-install';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+/** Ventana de re-aparición del banner tras un descarte: 7 días. */
+const DISMISS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Indica si la usuaria descartó el banner dentro de la ventana de 7 días.
+ * Lee la key `pwa-install-dismissed` (timestamp en ms) de localStorage.
+ */
+function wasRecentlyDismissed(): boolean {
+  const wasDismissed = localStorage.getItem('pwa-install-dismissed');
+  if (!wasDismissed) return false;
+  const dismissedAt = parseInt(wasDismissed, 10);
+  return Date.now() - dismissedAt < DISMISS_WINDOW_MS;
 }
 
+/**
+ * InstallPrompt — banner flotante global de instalación de la PWA + modal de
+ * instrucciones iOS.
+ *
+ * Capa de presentación: toda la lógica de detección (standalone/iOS/
+ * `beforeinstallprompt`) y el disparo del prompt nativo viven ahora en el hook
+ * `usePwaInstall()` (`lib/pwa/use-pwa-install.ts`), única fuente de verdad
+ * compartida con el paso "Instalar App" del onboarding. Este componente solo
+ * conserva la lógica propia de presentación: la ventana de descarte de 7 días
+ * (key `pwa-install-dismissed`), el retardo de 3s para mostrar el banner en iOS
+ * y la visibilidad del banner/modal.
+ *
+ * Requirements: 4.4, 5.3
+ */
 export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const { platform, canPrompt, isStandalone, promptInstall } = usePwaInstall();
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
+  const isIOS = platform === 'ios';
+
   useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    // Ya instalada: no mostrar el banner.
+    if (isStandalone) return;
 
-    // Check if user previously dismissed
-    const wasDismissed = localStorage.getItem('pwa-install-dismissed');
-    if (wasDismissed) {
-      const dismissedAt = parseInt(wasDismissed, 10);
-      // Show again after 7 days
-      if (Date.now() - dismissedAt < 7 * 24 * 60 * 60 * 1000) return;
-    }
+    // Descartado recientemente: respetar la ventana de 7 días.
+    if (wasRecentlyDismissed()) return;
 
-    // Detect iOS
-    const isIOSDevice =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(isIOSDevice);
-
-    if (isIOSDevice) {
-      // On iOS, show instructions after a short delay
+    if (platform === 'ios') {
+      // En iOS mostramos el banner tras un breve retardo.
       const timer = setTimeout(() => setShowInstallBanner(true), 3000);
       return () => clearTimeout(timer);
     }
 
-    // Android/Chrome: listen for beforeinstallprompt
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    // Android/Chromium: mostrar cuando el prompt nativo esté disponible.
+    if (platform === 'android' && canPrompt) {
       setShowInstallBanner(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+    }
+  }, [platform, canPrompt, isStandalone]);
 
   const handleInstallClick = async () => {
     if (isIOS) {
@@ -54,15 +65,10 @@ export default function InstallPrompt() {
       return;
     }
 
-    if (!deferredPrompt) return;
-
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-
+    const outcome = await promptInstall();
     if (outcome === 'accepted') {
       setShowInstallBanner(false);
     }
-    setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
@@ -78,42 +84,30 @@ export default function InstallPrompt() {
     <>
       {/* Install Banner */}
       <div className="fixed bottom-20 left-4 right-4 z-50 max-w-md mx-auto animate-slide-up">
-        <div className="bg-white rounded-2xl shadow-lg border border-sand p-4">
+        <div className="bg-warm rounded-xl shadow-lg border border-warm-border p-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-sage-soft rounded-xl flex items-center justify-center flex-shrink-0">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-sage"
-              >
-                <path d="M12 5v14M5 12l7 7 7-7" />
-              </svg>
+            <div className="w-10 h-10 bg-terracotta-soft rounded-lg flex items-center justify-center flex-shrink-0 text-terracotta">
+              <Icon name="download" size="md" decorative />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-charcoal text-sm">
+              <p className="font-body font-semibold text-charcoal text-sm">
                 Instalá la app
               </p>
-              <p className="text-xs text-charcoal/60 mt-0.5">
+              <p className="font-body text-xs text-muted mt-0.5">
                 Accedé más rápido y usala sin conexión
               </p>
             </div>
             <button
               onClick={handleDismiss}
-              className="text-charcoal/40 hover:text-charcoal/60 p-1"
+              className="text-muted hover:text-charcoal p-1"
               aria-label="Cerrar"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+              <Icon name="close" size="sm" decorative />
             </button>
           </div>
           <button
             onClick={handleInstallClick}
-            className="w-full mt-3 bg-sage text-white font-medium text-sm py-2.5 rounded-xl hover:bg-sage/90 transition-colors"
+            className="w-full mt-3 bg-terracotta text-warm font-body font-medium text-sm py-2.5 rounded-lg hover:bg-terracotta-dark transition-colors duration-fast ease-standard"
           >
             {isIOS ? 'Ver instrucciones' : 'Instalar ahora'}
           </button>
@@ -122,45 +116,37 @@ export default function InstallPrompt() {
 
       {/* iOS Instructions Modal */}
       {showIOSInstructions && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40">
-          <div className="bg-white rounded-t-2xl w-full max-w-md p-6 animate-slide-up">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-charcoal/40">
+          <div className="bg-warm rounded-t-xl w-full max-w-md p-6 animate-slide-up">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-charcoal text-base">
+              <h3 className="font-heading font-semibold text-charcoal text-base">
                 Instalar en iPhone/iPad
               </h3>
               <button
                 onClick={handleDismiss}
-                className="text-charcoal/40 hover:text-charcoal/60 p-1"
+                className="text-muted hover:text-charcoal p-1"
                 aria-label="Cerrar"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+                <Icon name="close" size="md" decorative />
               </button>
             </div>
 
-            <ol className="space-y-4 text-sm text-charcoal/80">
+            <ol className="space-y-4 font-body text-sm text-charcoal/80">
               <li className="flex gap-3">
-                <span className="w-6 h-6 bg-sage-soft rounded-full flex items-center justify-center flex-shrink-0 text-sage font-semibold text-xs">
+                <span className="w-6 h-6 bg-terracotta-soft rounded-full flex items-center justify-center flex-shrink-0 text-terracotta font-semibold text-xs">
                   1
                 </span>
                 <span>
                   Tocá el botón{' '}
                   <strong className="text-charcoal">Compartir</strong>{' '}
-                  <svg
-                    className="inline w-4 h-4 text-sage"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
-                  </svg>{' '}
+                  <span className="inline-flex align-middle text-terracotta">
+                    <Icon name="share" size="sm" decorative />
+                  </span>{' '}
                   en la barra de Safari
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="w-6 h-6 bg-sage-soft rounded-full flex items-center justify-center flex-shrink-0 text-sage font-semibold text-xs">
+                <span className="w-6 h-6 bg-terracotta-soft rounded-full flex items-center justify-center flex-shrink-0 text-terracotta font-semibold text-xs">
                   2
                 </span>
                 <span>
@@ -169,7 +155,7 @@ export default function InstallPrompt() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="w-6 h-6 bg-sage-soft rounded-full flex items-center justify-center flex-shrink-0 text-sage font-semibold text-xs">
+                <span className="w-6 h-6 bg-terracotta-soft rounded-full flex items-center justify-center flex-shrink-0 text-terracotta font-semibold text-xs">
                   3
                 </span>
                 <span>
@@ -181,7 +167,7 @@ export default function InstallPrompt() {
 
             <button
               onClick={handleDismiss}
-              className="w-full mt-6 bg-sage text-white font-medium text-sm py-2.5 rounded-xl hover:bg-sage/90 transition-colors"
+              className="w-full mt-6 bg-terracotta text-warm font-body font-medium text-sm py-2.5 rounded-lg hover:bg-terracotta-dark transition-colors duration-fast ease-standard"
             >
               Entendido
             </button>

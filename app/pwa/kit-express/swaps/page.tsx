@@ -3,85 +3,74 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { swapTable } from '@/lib/pwa/bump-content';
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.04 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
-};
+import { Icon } from '@/components/pwa/ui/Icon';
+import { computeStagger } from '@/lib/pwa/ui/motion';
 
 export default function SwapsPage() {
+  // Single consistent, capped inter-item entrance delay for the swap list.
+  const delays = computeStagger(swapTable.length);
+
   return (
     <div className="pb-24">
       {/* Back + Header */}
       <div className="px-4 pt-6 pb-2">
         <Link
           href="/pwa/kit-express"
-          className="inline-flex items-center gap-1 text-sm text-charcoal/50 hover:text-sage transition-colors mb-3"
+          className="inline-flex items-center gap-1 font-body text-sm text-charcoal/50 hover:text-terracotta transition-colors mb-3"
         >
-          ← Kit Anti-Excusas
+          <Icon name="back" size="sm" decorative /> Kit Anti-Excusas
         </Link>
         <div className="flex items-center gap-2">
           <span className="text-2xl">🔄</span>
           <div>
-            <h1 className="font-serif text-xl font-semibold text-charcoal">
+            <h1 className="font-heading text-xl font-semibold text-charcoal">
               Tabla de Swaps
             </h1>
-            <p className="text-xs text-charcoal/50">
+            <p className="font-body text-xs text-charcoal/50">
               20 sustituciones reales
             </p>
           </div>
         </div>
-        <p className="text-sm text-charcoal/60 mt-3 leading-relaxed">
+        <p className="font-body text-sm text-charcoal/60 mt-3 leading-relaxed">
           Si no conseguís un ingrediente o está caro, acá tenés con qué
           reemplazarlo sin perder los beneficios antiinflamatorios.
         </p>
       </div>
 
       {/* Swap cards */}
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="px-4 mt-4 space-y-2"
-      >
-        {swapTable.map((swap) => (
+      <div className="px-4 mt-4 space-y-2">
+        {swapTable.map((swap, i) => (
           <motion.div
             key={swap.id}
-            variants={item}
-            className="bg-white border border-sand/30 rounded-xl p-3 flex items-center gap-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut', delay: delays[i] / 1000 }}
+            className="bg-warm border border-warm-border rounded-xl p-3 flex items-center gap-2"
           >
             {/* Original */}
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-charcoal truncate block">
+              <span className="font-body text-sm font-medium text-charcoal truncate block">
                 {swap.original}
               </span>
             </div>
 
             {/* Arrow */}
             <div className="shrink-0 w-8 flex items-center justify-center">
-              <span className="text-sage font-bold text-lg">→</span>
+              <span className="text-terracotta font-bold text-lg">→</span>
             </div>
 
             {/* Substitute */}
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-sage truncate block">
+              <span className="font-body text-sm font-medium text-terracotta truncate block">
                 {swap.substitute}
               </span>
-              <span className="text-[10px] text-charcoal/50 block truncate">
+              <span className="font-body text-[10px] text-charcoal/50 block truncate">
                 {swap.reason}
               </span>
             </div>
           </motion.div>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }

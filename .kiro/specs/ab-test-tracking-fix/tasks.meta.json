@@ -1,0 +1,32 @@
+{
+  "pbtResults": {
+    "1. Escribir test de exploración de la condición de bug — entrada fija": {
+      "status": "passed",
+      "failingExample": "Sobre el código SIN corregir el test falla (confirma el bug): con ab_entry_v1='C' y flag OFF la entrada renderiza SlideLandingHookLite (C) en vez de SlideLandingHook (B), y para tráfico nuevo se emiten eventos ab_entry_* (ej. ab_entry_B_landing). Además FunnelView renderiza la SectionCard \"Test A/B/C — pantalla de entrada\" con la fila \"A · Directo (sin hook) · Descartada\".",
+      "lastRunTimestamp": 1783168517959
+    },
+    "2. Escribir test de exploración de la condición de bug — eventos de venta del Funnel A": {
+      "status": "passed",
+      "failingExample": "Sobre el código SIN corregir el test falla (confirma el bug): con ab_funnel_v1='A' y flag ON, SlideSalesPageV3 NO emite af_A_salespage_view al montar ni af_A_checkout al click (usa el vocabulario ab_entry / peekEntryVariant en vez de peekFunnelVariant).",
+      "lastRunTimestamp": 1783168521224
+    },
+    "3. Escribir test de exploración de la condición de bug — atribución de compra del Funnel A": {
+      "status": "passed",
+      "failingExample": "Sobre el código SIN corregir el test falla (confirma el bug): el checkout del control (SlideSalesPageV3) NO propaga funnel_variant='A' como cart attribute (window.open no contiene attributes[funnel_variant]=A), por lo que la compra del Funnel A no es atribuible como af_A_purchase por el puente por email/webhook.",
+      "lastRunTimestamp": 1783168522635
+    },
+    "4. Escribir tests de preservación — Funnel B intacto (ANTES del fix)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783168526294
+    },
+    "5. Escribir tests de preservación — flag OFF / LATAM / totales / Meta CAPI (ANTES del fix)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783168527320
+    },
+    "6. Escribir tests de preservación — parseo histórico `ab_entry_*` (ANTES del fix)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783168527817
+    }
+  },
+  "executionHistory": {}
+}

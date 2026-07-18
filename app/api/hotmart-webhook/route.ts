@@ -38,6 +38,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendCapiEvent, upsertSystemeContact } from '@/lib/tracking';
 import { sendBienvenidaEmail } from '@/lib/email/resend';
+import { getStore } from '@/lib/admin/store';
+import { inferUtmSource, cleanUtmValue } from '@/lib/utm';
 
 export const runtime = 'nodejs';
 
@@ -97,7 +99,61 @@ type ApprovedResult = {
   capi: 'ok' | 'skipped' | string;
   systeme: 'ok' | 'skipped' | string;
   email: 'ok' | 'skipped' | string;
+  funnel: 'ok' | 'skipped' | string;
 };
+
+/**
+ * Puente de atribución por email contra `clientes`.
+ *
+ * Hotmart NO manda UTMs/fbclid en el payload del webhook (a diferencia de
+ * Shopify, que los trae en el checkout). Pero el lead guardó sus UTMs + fbclid
+ * + fbc/fbp en `clientes` cuando completó el quiz (/api/submit-quiz). Los
+ * recuperamos por email para:
+ *   1. atribuir la venta a la campaña real en /admin/funnel (no "(directo)")
+ *   2. persistir los UTMs en `purchases` (sección Ventas filtra por canal)
+ *   3. enriquecer el match del Purchase de Meta CAPI con los fbc/fbp del funnel
+ *
+ * Best-effort: si no hay Supabase / lead / match, devolvemos vacío y el flujo
+ * sigue igual que antes (email-only). Nunca tira.
+ */
+async function bridgeAttributionByEmail(
+  supabase: ReturnType<typeof import('@/lib/pwa/supabase').createPwaServiceClient>,
+  email: string,
+): Promise<{ utms: Record<string, string>; fbc?: string; fbp?: string }> {
+  const utms: Record<string, string> = {};
+  let fbc: string | undefined;
+  let fbp: string | undefined;
+  try {
+    const { data } = await supabase
+      .from('clientes')
+      .select('fbc, fbp, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid')
+      .eq('email', email)
+      .maybeSingle();
+    if (data) {
+      const row = data as Record<string, unknown>;
+      const asStr = (v: unknown): string | undefined =>
+        typeof v === 'string' && v.length > 0 ? v : undefined;
+      fbc = asStr(row.fbc);
+      fbp = asStr(row.fbp);
+      // Normalizamos igual que el webhook de Shopify: inferimos source="facebook"
+      // si vino fbclid sin utm_source, y limpiamos el resto (encoding/espacios).
+      const source = inferUtmSource(row as Record<string, string>);
+      if (source) utms.utm_source = source;
+      const medium = cleanUtmValue(asStr(row.utm_medium));
+      if (medium) utms.utm_medium = medium;
+      const campaign = cleanUtmValue(asStr(row.utm_campaign));
+      if (campaign) utms.utm_campaign = campaign;
+      const content = cleanUtmValue(asStr(row.utm_content));
+      if (content) utms.utm_content = content;
+      const term = cleanUtmValue(asStr(row.utm_term));
+      if (term) utms.utm_term = term;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[hotmart] attribution bridge lookup failed:', msg);
+  }
+  return { utms, fbc, fbp };
+}
 
 async function handleApproved(payload: HotmartPayload): Promise<ApprovedResult> {
   const buyer = payload.data?.buyer ?? {};
@@ -109,35 +165,63 @@ async function handleApproved(payload: HotmartPayload): Promise<ApprovedResult> 
   const currency = purchase.price?.currency_value ?? 'USD';
 
   // ─── 1. Supabase upsert (CRÍTICO para acceso a PWA) ─────────────
+  // `isNewPurchase` arranca en true (best-effort si Supabase no está) y solo
+  // pasa a false si detectamos que la transacción ya existía → evita doble
+  // conteo en el funnel cuando Hotmart reintenta el mismo evento.
   let supabaseStatus: ApprovedResult['supabase'] = 'skipped';
+  let isNewPurchase = true;
+  // Atribución recuperada por email (UTMs + fbc/fbp del lead). Se rellena con el
+  // puente contra `clientes` y la usan tanto el upsert a `purchases` como el
+  // track al funnel store y el enriquecimiento de Meta CAPI.
+  let attribution: Record<string, string> = {};
+  let bridgedFbc: string | undefined;
+  let bridgedFbp: string | undefined;
   if (hasSupabase()) {
     try {
       const { createPwaServiceClient } = await import('@/lib/pwa/supabase');
       const supabase = createPwaServiceClient();
+
+      // Puente de atribución por email (antes del upsert: sus UTMs se guardan).
+      const bridge = await bridgeAttributionByEmail(supabase, email);
+      attribution = bridge.utms;
+      bridgedFbc = bridge.fbc;
+      bridgedFbp = bridge.fbp;
+
       const purchasedAt =
         typeof purchase.approved_date === 'number'
           ? new Date(purchase.approved_date).toISOString()
           : new Date().toISOString();
 
-      const { error } = await supabase.from('purchases').upsert(
-        {
-          email,
-          hotmart_transaction: purchase.transaction ?? null,
-          product_id: product.id != null ? String(product.id) : null,
-          product_name: typeof product.name === 'string' ? product.name : null,
-          amount: typeof value === 'number' ? value : null,
-          currency,
-          status: 'approved',
-          purchased_at: purchasedAt,
-        },
-        { onConflict: 'hotmart_transaction', ignoreDuplicates: true },
-      );
+      const { data: inserted, error } = await supabase
+        .from('purchases')
+        .upsert(
+          {
+            email,
+            hotmart_transaction: purchase.transaction ?? null,
+            product_id: product.id != null ? String(product.id) : null,
+            product_name: typeof product.name === 'string' ? product.name : null,
+            amount: typeof value === 'number' ? value : null,
+            currency,
+            status: 'approved',
+            purchased_at: purchasedAt,
+            utm_source: attribution.utm_source ?? null,
+            utm_medium: attribution.utm_medium ?? null,
+            utm_campaign: attribution.utm_campaign ?? null,
+            utm_content: attribution.utm_content ?? null,
+            utm_term: attribution.utm_term ?? null,
+          },
+          { onConflict: 'hotmart_transaction', ignoreDuplicates: true },
+        )
+        .select('id');
 
       if (error) {
         console.error('[hotmart] supabase upsert error:', error.message);
         supabaseStatus = `error:${error.message}`;
       } else {
         supabaseStatus = 'ok';
+        // Con ignoreDuplicates, `.select()` devuelve fila SOLO si se insertó.
+        // Vacío = la transacción ya existía (reintento) → no volver a contar.
+        isNewPurchase = (inserted?.length ?? 0) > 0;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -149,17 +233,22 @@ async function handleApproved(payload: HotmartPayload): Promise<ApprovedResult> 
   }
 
   // ─── 2. Meta CAPI (deduplicación con Pixel client-side) ─────────
+  // event_id determinístico (la transacción de Hotmart): si llega el mismo
+  // evento dos veces (APPROVED + COMPLETE, o reintentos), Meta deduplica.
   const fbc =
     (typeof buyer.fbc === 'string' && buyer.fbc) ||
     (typeof purchase.tracking?.fbc === 'string' && purchase.tracking.fbc) ||
+    bridgedFbc ||
     undefined;
   const fbp =
     (typeof buyer.fbp === 'string' && buyer.fbp) ||
     (typeof purchase.tracking?.fbp === 'string' && purchase.tracking.fbp) ||
+    bridgedFbp ||
     undefined;
 
   const capiRes = await sendCapiEvent({
     event_name: 'Purchase',
+    event_id: purchase.transaction ?? undefined,
     action_source: 'website',
     user_data: {
       email,
@@ -176,6 +265,28 @@ async function handleApproved(payload: HotmartPayload): Promise<ApprovedResult> 
     },
   });
 
+  // ─── 3. Admin funnel store (atribución de la venta por UTM) ─────────
+  // Antes el webhook de Hotmart NUNCA registraba el Purchase en el funnel store,
+  // así que las ventas LATAM eran invisibles en /admin/funnel (a diferencia del
+  // webhook de Shopify, que sí lo hace). Ahora lo registramos con los UTMs reales
+  // recuperados por email. Solo si es compra nueva (idempotencia).
+  let funnelStatus: ApprovedResult['funnel'] = 'skipped';
+  if (isNewPurchase) {
+    try {
+      await getStore().track('Purchase', {
+        utms: Object.keys(attribution).length > 0 ? attribution : undefined,
+        quizVersion: 'latam',
+      });
+      funnelStatus = `ok:${attribution.utm_source ?? '(directo)'}`;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[hotmart] funnel store track failed:', msg);
+      funnelStatus = `error:${msg}`;
+    }
+  } else {
+    funnelStatus = `skipped:duplicate_or_no_supabase(supabase=${supabaseStatus})`;
+  }
+
   // ─── 3. Systeme tag "comprador" ────────────────────────────────
   const systemeRes = await upsertSystemeContact({
     email,
@@ -185,10 +296,19 @@ async function handleApproved(payload: HotmartPayload): Promise<ApprovedResult> 
   });
 
   // ─── 4. Resend: email de bienvenida + acceso a la app ──────────
-  // Detectamos el plan desde el product name o price.
+  // Detectamos el plan según el PRODUCT_ID de Hotmart (no por precio):
+  // el funnel LATAM vende en USD (5.90 front / 13.90 upsell), así que los
+  // umbrales en ARS ya no sirven. Mapeo por id de producto:
+  //   - HOTMART_PRODUCT_ID_UPSELL → '4sem'
+  //   - HOTMART_PRODUCT_ID_FRONT  → '1sem'
+  //   - default / env sin setear   → '1sem' (fallback defensivo, no crashea)
+  const productId = product.id != null ? String(product.id) : '';
+  const frontId = process.env.HOTMART_PRODUCT_ID_FRONT;
+  const upsellId = process.env.HOTMART_PRODUCT_ID_UPSELL;
+
   let plan = '1sem';
-  if (value >= 25000) plan = '8sem';
-  else if (value >= 15000) plan = '4sem';
+  if (upsellId && productId === String(upsellId)) plan = '4sem';
+  else if (frontId && productId === String(frontId)) plan = '1sem';
 
   const emailSent = await sendBienvenidaEmail({
     to: email,
@@ -201,6 +321,7 @@ async function handleApproved(payload: HotmartPayload): Promise<ApprovedResult> 
     capi: capiRes.ok ? 'ok' : `skipped:${capiRes.reason ?? capiRes.error}`,
     systeme: systemeRes.ok ? 'ok' : `skipped:${systemeRes.reason ?? systemeRes.error}`,
     email: emailSent ? 'ok' : 'skipped',
+    funnel: funnelStatus,
   };
 }
 

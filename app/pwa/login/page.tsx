@@ -2,15 +2,20 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { isOnboardingCompleted } from '@/lib/pwa/onboarding-state';
+import { createPwaBrowserClient } from '@/lib/pwa/supabase-browser';
+import { TextInput } from '@/components/pwa/ui/TextInput';
+import { Button } from '@/components/pwa/ui/Button';
+import { Icon } from '@/components/pwa/ui/Icon';
 
-type Status = 'idle' | 'loading' | 'success' | 'error';
+type Status = 'idle' | 'loading' | 'error';
 
 export default function PwaLoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-cream">
-        <div className="w-6 h-6 border-2 border-sage/30 border-t-sage rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-warm">
+        <div className="w-6 h-6 border-2 border-terracotta/30 border-t-terracotta rounded-full animate-spin" />
       </div>
     }>
       <LoginContent />
@@ -21,6 +26,7 @@ export default function PwaLoginPage() {
 function LoginContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -54,135 +60,140 @@ function LoginContent() {
     setStatus('loading');
     setErrorMsg('');
 
-    console.log('[pwa/login] submit start, email=', email);
+    const cleanEmail = email.trim().toLowerCase();
+    console.log('[pwa/login] submit start, email=', cleanEmail);
 
     try {
-      const res = await fetch('/api/pwa/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      const supabase = createPwaBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
       });
 
-      console.log('[pwa/login] response status=', res.status);
-      const data = await res.json();
-      console.log('[pwa/login] response body=', data);
-
-      if (res.ok) {
-        // Tanto test mode como prod ahora setean cookie de sesión.
-        // Usamos window.location.href en vez de router.push para forzar un
-        // full page load — eso garantiza que el browser mande la cookie
-        // recién seteada en la próxima request (router.push hace navegación
-        // client-side que a veces pierde Set-Cookie en Safari incógnito).
-        //
-        // Decisión de destino:
-        //  - Primer login (sin flag de onboarding completo) → /pwa/onboarding
-        //    para que vea el tour + setee preferencias dietéticas.
-        //  - Segundo login en adelante → /pwa/dashboard directo.
-        //
-        // El flag vive en localStorage del device: si el usuario abre la app
-        // desde otro celu por primera vez, vuelve a ver el onboarding.
-        // Aceptable hasta que migremos esto a tabla `profiles` en Supabase.
-        const target = isOnboardingCompleted() ? '/pwa/dashboard' : '/pwa/onboarding';
-        console.log('[pwa/login] redirecting to', target);
-        window.location.href = target;
-        return;
-      } else {
-        // Mensajes específicos por tipo de error.
-        // Los config_* se ven solo si el dev/admin todavía no configuró
-        // las env vars correctamente — para usuarios reales, "internal".
-        const errorMessages: Record<string, string> = {
-          no_purchase:
-            'No encontramos una compra con ese email. ¿Usaste otro email para pagar?',
-          invalid_email: 'El email no parece válido. Revisá si lo escribiste bien.',
-          config_session_secret:
-            '⚠️ Falta configurar PWA_SESSION_SECRET en Vercel (mín 16 chars).',
-          config_supabase:
-            '⚠️ Faltan keys de Supabase en Vercel (NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY).',
-          supabase_query_failed:
-            '⚠️ Error consultando Supabase: ' + (data.detail ?? 'sin detalle'),
-        };
-        setErrorMsg(
-          errorMessages[data.error] ??
-            'Algo salió mal. Intentá de nuevo en unos segundos.'
-        );
+      if (error) {
+        console.log('[pwa/login] auth error:', error.message);
+        if (error.message.includes('Invalid login credentials')) {
+          setErrorMsg('Email o contraseña incorrectos.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setErrorMsg('Tu cuenta todavía no está confirmada. Revisá tu email.');
+        } else {
+          setErrorMsg('No pudimos iniciar sesión. Intentá de nuevo.');
+        }
         setStatus('error');
+        return;
       }
+
+      // Usamos window.location.href en vez de router.push para forzar un
+      // full page load — eso garantiza que el browser mande la cookie
+      // de sesión recién seteada en la próxima request (router.push hace
+      // navegación client-side que a veces pierde Set-Cookie en Safari
+      // incógnito).
+      //
+      // Decisión de destino:
+      //  - Primer login (sin flag de onboarding completo) → /pwa/onboarding
+      //    para que vea el tour + setee preferencias dietéticas.
+      //  - Segundo login en adelante → /pwa/dashboard directo.
+      //
+      // El flag vive en localStorage del device: si el usuario abre la app
+      // desde otro celu por primera vez, vuelve a ver el onboarding.
+      // Aceptable hasta que migremos esto a tabla `profiles` en Supabase.
+      const target = isOnboardingCompleted() ? '/pwa/dashboard' : '/pwa/onboarding';
+      console.log('[pwa/login] redirecting to', target);
+      window.location.href = target;
     } catch (err) {
-      console.error('[pwa/login] network error:', err);
-      setErrorMsg('Error de conexión. Verificá tu internet e intentá de nuevo.');
+      console.error('[pwa/login] unexpected error:', err);
+      setErrorMsg('No pudimos iniciar sesión. Intentá de nuevo.');
       setStatus('error');
     }
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-cream">
+    <main className="min-h-screen flex items-center justify-center px-4 py-8 bg-warm">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-sage rounded-2xl mx-auto mb-4 flex items-center justify-center">
-            <span className="text-white text-2xl font-heading font-bold">P</span>
+          <div className="w-20 h-20 bg-terracotta rounded-2xl mx-auto mb-4 flex items-center justify-center">
+            <span className="text-warm text-3xl font-heading font-bold">P</span>
           </div>
-          <h1 className="font-heading text-2xl font-semibold text-charcoal">
+          {/* Page-title level: heading family, 30px, semibold. */}
+          <h1 className="font-heading text-3xl font-semibold text-charcoal">
             Protocolo Anti-Hinchazón
           </h1>
-          <p className="text-charcoal/60 mt-1 text-sm">
-            Ingresá con el email de tu compra
+          <p className="font-body text-muted mt-2 text-base">
+            Ingresá a tu protocolo
           </p>
         </div>
 
-        {/* Success state */}
-        {status === 'success' ? (
-          <div className="bg-sage-soft border border-sage/20 rounded-2xl p-6 text-center">
-            <div className="text-4xl mb-3">📧</div>
-            <h2 className="font-heading text-lg font-semibold text-charcoal mb-2">
-              ¡Revisá tu email!
-            </h2>
-            <p className="text-charcoal/70 text-sm">
-              Te enviamos un link mágico a <strong>{email}</strong>. Hacé click para acceder.
-            </p>
-            <p className="text-charcoal/50 text-xs mt-3">¿No lo ves? Revisá spam.</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="pwa-email" className="block text-sm font-medium text-charcoal mb-1.5">
-                Tu email
-              </label>
-              <input
-                id="pwa-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-sand/60 bg-white text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-sage/50 focus:border-sage transition-colors"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <TextInput
+            id="pwa-email"
+            label="Tu email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="tu@email.com"
+            required
+          />
 
-            {status === 'error' && (
-              <p className="text-coral text-sm">{errorMsg}</p>
-            )}
+          <TextInput
+            id="pwa-password"
+            label="Tu contraseña"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
 
-            <button
-              type="submit"
-              disabled={status === 'loading' || !email}
-              className="w-full py-3 px-4 bg-sage text-white font-semibold rounded-xl hover:bg-sage/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          {/*
+            Inline error treatment (replaces the ad-hoc `text-coral` text). Uses
+            the named status token, an exposed error Icon, and `role="alert"`.
+            Entered input is preserved — the form fields keep their values and
+            the persistent submit button below acts as the retry control
+            (Requirements 9.3, 9.7, 12.5).
+          */}
+          {status === 'error' && errorMsg && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 p-3 rounded-md bg-error/10 border border-error/30"
             >
-              {status === 'loading' ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Verificando...
-                </span>
-              ) : (
-                'Acceder a mi protocolo'
-              )}
-            </button>
-          </form>
-        )}
+              <Icon name="error" size="sm" label="Error" className="text-error shrink-0 mt-0.5" />
+              <p className="font-body text-base text-charcoal">{errorMsg}</p>
+            </div>
+          )}
 
-        <p className="text-center text-xs text-charcoal/40 mt-6">
-          Solo podés acceder si compraste el Protocolo Anti-Hinchazón.
-        </p>
+          <Button
+            type="submit"
+            disabled={status === 'loading' || !email || !password}
+            className="w-full"
+          >
+            {status === 'loading' ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-5 h-5 border-2 border-warm/30 border-t-warm rounded-full animate-spin" />
+                Verificando...
+              </span>
+            ) : (
+              'Acceder a mi protocolo'
+            )}
+          </Button>
+        </form>
+
+        <div className="mt-8 space-y-3 text-center">
+          <Link
+            href="/pwa/recuperar"
+            className="block font-body text-base text-terracotta hover:text-terracotta/80 transition-colors duration-fast ease-standard"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+          <Link
+            href="/pwa/registro"
+            className="block font-body text-base text-muted hover:text-charcoal transition-colors duration-fast ease-standard"
+          >
+            ¿No tenés cuenta? Registrate
+          </Link>
+        </div>
       </div>
     </main>
   );

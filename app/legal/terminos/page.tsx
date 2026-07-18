@@ -22,16 +22,38 @@ export default function TerminosPage() {
         alimentario, recetas y guías accesibles desde una aplicación web tras la compra.
       </p>
       <ul>
-        <li>Producto principal (Plan 7 días): $6.000 ARS</li>
+        <li>Producto principal (Plan 7 días): $8.000 ARS</li>
         <li>Extensión opcional (Programa 30 días): $9.990 ARS</li>
       </ul>
 
-      <h2>2. Aviso de salud</h2>
+      <h2>2. Aviso de salud y contraindicaciones</h2>
       <p>
         El contenido es <strong>exclusivamente educativo e informativo</strong>.
-        No constituye consejo médico ni diagnóstico. Si tenés una condición médica,
-        alergias, estás embarazada o tomás medicación, consultá a un profesional
-        antes de modificar tu alimentación.
+        No constituye consejo médico, nutricional profesional ni diagnóstico, y
+        no reemplaza la consulta con un médico, nutricionista u otro profesional
+        de la salud matriculado.
+      </p>
+      <p>
+        <strong>Consultá a tu médico antes de empezar</strong>, especialmente si
+        te encontrás en alguna de estas situaciones:
+      </p>
+      <ul>
+        <li>Diabetes o cualquier alteración del azúcar en sangre.</li>
+        <li>Embarazo, lactancia o búsqueda de embarazo.</li>
+        <li>Enfermedad renal, hepática, cardíaca o presión arterial alta.</li>
+        <li>Trastornos de la conducta alimentaria (actuales o pasados).</li>
+        <li>Condiciones gastrointestinales diagnosticadas (colon irritable, celiaquía, enfermedad inflamatoria intestinal, etc.).</li>
+        <li>Alergias o intolerancias alimentarias.</li>
+        <li>Uso de medicación de cualquier tipo.</li>
+        <li>Sos menor de 18 años.</li>
+      </ul>
+      <p>
+        Esta lista no es exhaustiva. Ante cualquier duda sobre si el programa es
+        apropiado para vos, consultá primero con un profesional de la salud.
+        <strong> No empieces, suspendas ni modifiques ningún tratamiento médico
+        en base a este contenido.</strong> Si experimentás cualquier malestar,
+        interrumpí el programa y consultá a tu médico. Usás el programa bajo tu
+        propia responsabilidad.
       </p>
 
       <h2>3. Acceso</h2>

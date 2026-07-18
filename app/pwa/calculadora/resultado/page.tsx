@@ -11,6 +11,8 @@ import {
 } from '@/lib/pwa/microbiota-symptoms';
 import ScoreGauge from '@/components/pwa/calculadora/ScoreGauge';
 import CategoryBreakdown from '@/components/pwa/calculadora/CategoryBreakdown';
+import { Button } from '@/components/pwa/ui/Button';
+import { LoadingState } from '@/components/pwa/ui/LoadingState';
 
 export default function ResultadoPage() {
   const router = useRouter();
@@ -37,9 +39,10 @@ export default function ResultadoPage() {
   }, [router]);
 
   if (!result) {
+    // Loading_State styled with Design_System tokens, announced to assistive tech.
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-3 border-sage border-t-transparent rounded-full animate-spin" />
+      <div className="py-20">
+        <LoadingState variant="spinner" message="Cargando tu resultado…" />
       </div>
     );
   }
@@ -56,8 +59,8 @@ export default function ResultadoPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="font-serif text-2xl text-charcoal font-semibold">Tu resultado</h1>
-        <p className="text-xs text-charcoal/50">
+        <h1 className="font-heading text-2xl text-charcoal font-semibold">Tu resultado</h1>
+        <p className="font-body text-xs text-charcoal/50">
           Evaluación de microbiota · {new Date().toLocaleDateString('es-AR')}
         </p>
       </motion.div>
@@ -74,7 +77,7 @@ export default function ResultadoPage() {
 
       {/* Interpretation card */}
       <motion.div
-        className="bg-white rounded-xl p-5 shadow-sm space-y-3"
+        className="bg-warm border border-warm-border rounded-xl p-5 shadow-sm space-y-3"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.6 }}
@@ -82,53 +85,53 @@ export default function ResultadoPage() {
         <div className="flex items-center gap-3">
           <span className="text-3xl">{interpretation.emoji}</span>
           <div>
-            <h2 className={`font-serif text-lg font-semibold ${interpretation.color}`}>
+            <h2 className={`font-heading text-lg font-semibold ${interpretation.color}`}>
               {interpretation.label}
             </h2>
-            <p className="text-xs text-charcoal/50">
+            <p className="font-body text-xs text-charcoal/50">
               {totalPoints} / {maxPoints} puntos de síntomas
             </p>
           </div>
         </div>
-        <p className="text-sm text-charcoal/70 leading-relaxed">{interpretation.description}</p>
+        <p className="font-body text-sm text-charcoal/70 leading-relaxed">{interpretation.description}</p>
       </motion.div>
 
       {/* Comparison with previous */}
       {previousAssessment && scoreDiff !== null && (
         <motion.div
-          className="bg-sage-soft rounded-xl p-4 space-y-2"
+          className="bg-terracotta-soft rounded-xl p-4 space-y-2"
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.8 }}
         >
-          <h3 className="font-serif text-base text-charcoal font-semibold flex items-center gap-2">
+          <h3 className="font-heading text-base text-charcoal font-semibold flex items-center gap-2">
             📈 Comparación con tu evaluación anterior
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {/* Previous score */}
-            <div className="bg-white rounded-lg p-3 text-center">
-              <p className="text-xs text-charcoal/50 mb-1">Anterior</p>
-              <p className="text-xl font-bold text-charcoal">{previousAssessment.score.toFixed(1)}</p>
-              <p className="text-[10px] text-charcoal/40">
+            <div className="bg-warm rounded-lg p-3 text-center">
+              <p className="font-body text-xs text-charcoal/50 mb-1">Anterior</p>
+              <p className="font-body text-xl font-bold text-charcoal">{previousAssessment.score.toFixed(1)}</p>
+              <p className="font-body text-[10px] text-charcoal/40">
                 {new Date(previousAssessment.takenAt).toLocaleDateString('es-AR')}
               </p>
             </div>
             {/* Current score */}
-            <div className="bg-white rounded-lg p-3 text-center">
-              <p className="text-xs text-charcoal/50 mb-1">Actual</p>
-              <p className="text-xl font-bold text-charcoal">{score.toFixed(1)}</p>
-              <p className="text-[10px] text-charcoal/40">Hoy</p>
+            <div className="bg-warm rounded-lg p-3 text-center">
+              <p className="font-body text-xs text-charcoal/50 mb-1">Actual</p>
+              <p className="font-body text-xl font-bold text-charcoal">{score.toFixed(1)}</p>
+              <p className="font-body text-[10px] text-charcoal/40">Hoy</p>
             </div>
           </div>
           {/* Difference */}
           <div className="text-center pt-1">
             <span
-              className={`inline-flex items-center gap-1 text-sm font-semibold px-3 py-1 rounded-full ${
+              className={`inline-flex items-center gap-1 font-body text-sm font-semibold px-3 py-1 rounded-full ${
                 scoreDiff > 0
-                  ? 'bg-sage/10 text-sage-dark'
+                  ? 'bg-terracotta/10 text-terracotta-dark'
                   : scoreDiff < 0
-                  ? 'bg-red-50 text-red-500'
-                  : 'bg-gray-100 text-charcoal/50'
+                  ? 'bg-error/10 text-error'
+                  : 'bg-warm-border text-charcoal/50'
               }`}
             >
               {scoreDiff > 0 ? '↑' : scoreDiff < 0 ? '↓' : '='}
@@ -157,28 +160,22 @@ export default function ResultadoPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 1.2 }}
       >
-        <button
-          onClick={() => router.push('/pwa/dashboard')}
-          className="w-full py-3 px-4 rounded-full bg-sage text-white font-semibold text-sm transition-all hover:bg-sage-dark active:scale-95 shadow-md"
-        >
+        <Button variant="primary" onClick={() => router.push('/pwa/dashboard')} className="w-full">
           Volver al inicio
-        </button>
-        <button
-          onClick={() => router.push('/pwa/plan')}
-          className="w-full py-3 px-4 rounded-full border-2 border-sage text-sage font-semibold text-sm transition-all hover:bg-sage-soft active:scale-95"
-        >
+        </Button>
+        <Button variant="outline" onClick={() => router.push('/pwa/plan')} className="w-full">
           Ver mi plan de acción
-        </button>
+        </Button>
       </motion.div>
 
       {/* Tip */}
       <motion.div
-        className="bg-cream-warm rounded-lg p-3 text-center"
+        className="bg-warm-border rounded-lg p-3 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4, delay: 1.4 }}
       >
-        <p className="text-xs text-charcoal/60 leading-relaxed">
+        <p className="font-body text-xs text-charcoal/60 leading-relaxed">
           💡 <strong>Tip:</strong> Repetí esta evaluación cada 7 días para ver tu progreso.
           Los cambios se reflejan mejor con consistencia en el protocolo.
         </p>

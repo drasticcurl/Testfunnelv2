@@ -1,0 +1,29 @@
+{
+  "pbtResults": {
+    "2.2 Escribir property test de `normalizeQuizVersion`": {
+      "status": "passed",
+      "lastRunTimestamp": 1782385771510
+    },
+    "3.3 Escribir test de compatibilidad de callers legacy": {
+      "status": "passed",
+      "lastRunTimestamp": 1782385774451
+    },
+    "4.3 Escribir property/unit test de `selectSlides`": {
+      "status": "passed",
+      "lastRunTimestamp": 1782385778157
+    },
+    "4.4 Escribir property test del filtro por versión en `computeFunnel` (memory)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782385779177
+    },
+    "4.5 Escribir property test de unificado = suma en `computeFunnel` (memory)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782385780205
+    },
+    "6.2 Escribir tests de integración para `funnel-data` filtrado por versión": {
+      "status": "passed",
+      "lastRunTimestamp": 1782385781244
+    }
+  },
+  "executionHistory": {}
+}
