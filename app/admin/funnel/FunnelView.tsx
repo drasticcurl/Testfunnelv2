@@ -11,7 +11,8 @@
  * 100% = personas que empezaron el quiz (totalStarts) del día seleccionado.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowClockwise,
   CalendarBlank,
@@ -20,8 +21,9 @@ import {
   Warning,
   FlagBanner,
   TrendDown,
+  Flask,
 } from '@phosphor-icons/react';
-import type { FunnelData, CountryBreakdownRow } from '@/lib/admin/store';
+import type { FunnelData, CountryBreakdownRow, FunnelVariantBreakdownRow } from '@/lib/admin/store';
 import {
   Card,
   SectionCard,
@@ -35,13 +37,15 @@ import {
   cn,
 } from '@/components/admin/ui';
 import { FunnelShape, type FunnelStep } from '@/components/admin/FunnelShape';
-import { getArgentinaDay, formatDayLabel } from '@/lib/admin/day';
+import { resolveRangeFromParam } from '@/lib/admin/range';
+import { FUNNEL_VARIANT_LABEL } from '@/lib/quiz-v2/funnelVariant';
 
 type Props = {
   initialData: FunnelData;
 };
 
 const SLIDE_LABELS: Record<string, string> = {
+  landing_hook: 'Landing (entrada)',
   apertura: 'Apertura',
   momento_del_dia: 'Momento',
   tiempo_con_problema: 'Tiempo',
@@ -92,10 +96,16 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 export function FunnelView({ initialData }: Props) {
+  const searchParams = useSearchParams();
+  const range = resolveRangeFromParam(searchParams.get('range'));
+
   const [data, setData] = useState<FunnelData>(initialData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string>(initialData.day ?? getArgentinaDay());
+
+  // Toggle de 3 vistas: Argentina / LATAM / Unificado (default).
+  // 'unified' no manda `version` => la API suma todas las filas.
+  const [versionView, setVersionView] = useState<'ar' | 'latam' | 'unified'>('unified');
 
   // Backfill manual de compras (webhooks perdidos / ventas viejas).
   const [backfillOpen, setBackfillOpen] = useState(false);
@@ -104,11 +114,12 @@ export function FunnelView({ initialData }: Props) {
   const [backfillCountry, setBackfillCountry] = useState('');
   const [backfillBusy, setBackfillBusy] = useState(false);
 
-  const refetch = useCallback(async (day: string) => {
+  const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/funnel-data?day=${encodeURIComponent(day)}`, {
+      const versionQS = versionView === 'unified' ? '' : `&version=${versionView}`;
+      const res = await fetch(`/api/admin/funnel-data?range=${range.preset}${versionQS}`, {
         cache: 'no-store',
         credentials: 'same-origin',
       });
@@ -122,12 +133,10 @@ export function FunnelView({ initialData }: Props) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [range.preset, versionView]);
 
-  const onChangeDay = useCallback((day: string) => {
-    setSelectedDay(day);
-    refetch(day);
-  }, [refetch]);
+  // Re-fetch cuando cambia el período global o la vista de versión.
+  useEffect(() => { refetch(); }, [refetch]);
 
   const onReset = useCallback(async () => {
     const code = prompt('Para resetear TODAS las estadísticas (todos los días), escribí "123":');
@@ -145,11 +154,11 @@ export function FunnelView({ initialData }: Props) {
         return;
       }
       alert('✅ Estadísticas reseteadas correctamente');
-      refetch(selectedDay);
+      refetch();
     } catch (err) {
       alert(`Error de red al resetear: ${err instanceof Error ? err.message : 'desconocido'}`);
     }
-  }, [refetch, selectedDay]);
+  }, [refetch]);
 
   const onBackfillSubmit = useCallback(async () => {
     const n = Number.parseInt(backfillCount, 10);
@@ -183,10 +192,7 @@ export function FunnelView({ initialData }: Props) {
       setBackfillCampaign('');
       setBackfillCountry('');
       setBackfillOpen(false);
-      // El backfill se registra con el día de hoy → vamos a hoy.
-      const todayStr = getArgentinaDay();
-      setSelectedDay(todayStr);
-      refetch(todayStr);
+      refetch();
     } catch (err) {
       alert(`Error de red: ${err instanceof Error ? err.message : 'desconocido'}`);
     } finally {
@@ -194,33 +200,40 @@ export function FunnelView({ initialData }: Props) {
     }
   }, [backfillCount, backfillCampaign, backfillCountry, refetch]);
 
-  // Opciones del selector de día: hoy + ayer + días con datos + acumulado.
-  const dayOptions = useMemo(() => {
-    const today = getArgentinaDay();
-    const yesterday = getArgentinaDay(new Date(Date.now() - 86_400_000));
-    const set = new Set<string>([today, yesterday, ...(data.availableDays ?? [])]);
-    const days = Array.from(set).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
-    return days;
-  }, [data.availableDays]);
+  // Base de medición (100% del embudo):
+  //   - 'landing' = slide 0 (todos los que entraron / vieron la pantalla de entrada)
+  //   - 'start'   = slide 1 (los que llegaron a la 1ª pregunta = iniciaron el quiz)
+  // Permite medir el embudo DESDE la landing o desde el inicio real del quiz.
+  const [baseMode, setBaseMode] = useState<'landing' | 'start'>('landing');
+  const baseIndex = baseMode === 'landing' ? 0 : 1;
 
-  // Pasos del embudo (slides + llegaron a venta + compraron).
+  const landingCount = data.slides[0]?.count ?? data.totalStarts;
+  const startedCount = data.slides[1]?.count ?? 0;
+  const baseRef = (data.slides[baseIndex]?.count ?? data.totalStarts) || 1;
+  /** % de los que entraron a la landing que llegaron a la 1ª pregunta. */
+  const landingToStartPct = landingCount > 0 ? (startedCount / landingCount) * 100 : 0;
+
+  // Pasos del embudo (slides desde la base + llegaron a venta + compraron).
   const funnelSteps = useMemo(() => {
-    const totalRef = data.totalStarts || 1;
     const steps: Array<{ name: string; pct: number; count: number; index: number }> = [];
     data.slides.forEach((s, i) => {
+      if (i < baseIndex) return; // los slides por encima de la base no se muestran
       steps.push({
         name: SLIDE_LABELS[s.id] || s.id,
-        pct: (s.count / totalRef) * 100,
+        pct: (s.count / baseRef) * 100,
         count: s.count,
         index: i,
       });
     });
-    steps.push({ name: 'Llegaron a la venta', pct: (data.totalCompletes / totalRef) * 100, count: data.totalCompletes, index: 98 });
+    steps.push({ name: 'Llegaron a la venta', pct: (data.totalCompletes / baseRef) * 100, count: data.totalCompletes, index: 98 });
+    if (data.totalCheckoutClicks !== null) {
+      steps.push({ name: 'Clickearon comprar', pct: (data.totalCheckoutClicks / baseRef) * 100, count: data.totalCheckoutClicks, index: 99 });
+    }
     if (data.totalSales !== null) {
-      steps.push({ name: 'Compraron', pct: (data.totalSales / totalRef) * 100, count: data.totalSales, index: 99 });
+      steps.push({ name: 'Compraron', pct: (data.totalSales / baseRef) * 100, count: data.totalSales, index: 100 });
     }
     return steps;
-  }, [data]);
+  }, [data, baseRef, baseIndex]);
 
   const maxDropIdx = useMemo(() => {
     let max = 0, idx = -1;
@@ -238,7 +251,11 @@ export function FunnelView({ initialData }: Props) {
     [funnelSteps, maxDropIdx],
   );
 
-  const isAccumulated = data.day === null;
+  // Mejor CVR total del test FULL-FUNNEL (para resaltar la variante ganadora).
+  const bestTotalConversion = useMemo(() => {
+    const rows = (data.funnelVariantBreakdown ?? []).filter((r) => r.quizStarts > 0);
+    return rows.reduce((m, r) => Math.max(m, r.totalConversionRate), 0);
+  }, [data.funnelVariantBreakdown]);
 
   return (
     <div className="space-y-5">
@@ -247,29 +264,17 @@ export function FunnelView({ initialData }: Props) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-50">Embudo del quiz</h1>
           <p className="mt-1 text-sm text-neutral-400">
-            % de personas que llegan a cada paso vs las que empezaron el quiz.
+            % de personas que llegan a cada paso, medido desde{' '}
+            <strong className="text-neutral-200">{baseMode === 'landing' ? 'la landing (entrada)' : 'el inicio del quiz (1ª pregunta)'}</strong>.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Selector de día */}
-          <div className="relative inline-flex items-center">
-            <CalendarBlank size={16} weight="bold" className="pointer-events-none absolute left-3 text-neutral-400" />
-            <select
-              value={isAccumulated ? 'all' : selectedDay}
-              onChange={(e) => onChangeDay(e.target.value)}
-              disabled={loading}
-              className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-9 pr-8 text-sm font-medium text-neutral-200 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 disabled:opacity-50"
-            >
-              {dayOptions.map((d) => (
-                <option key={d} value={d} className="bg-[#13131a] text-neutral-200">
-                  {formatDayLabel(d)}
-                </option>
-              ))}
-              <option value="all" className="bg-[#13131a] text-neutral-200">Acumulado (todos)</option>
-            </select>
-            <span className="pointer-events-none absolute right-3 text-neutral-500">▾</span>
-          </div>
-          <Button onClick={() => refetch(selectedDay)} disabled={loading} variant="secondary">
+          {/* El período se controla con el selector GLOBAL de la barra superior. */}
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm font-medium text-neutral-300">
+            <CalendarBlank size={16} weight="bold" className="text-emerald-400" />
+            {range.label}
+          </span>
+          <Button onClick={() => refetch()} disabled={loading} variant="secondary">
             {loading ? <Spinner /> : <ArrowClockwise size={15} weight="bold" />}
             Actualizar
           </Button>
@@ -281,11 +286,21 @@ export function FunnelView({ initialData }: Props) {
       </header>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
-        <Badge accent={isAccumulated ? 'sky' : 'violet'}>
-          {isAccumulated ? 'Acumulado' : formatDayLabel(data.day ?? selectedDay)}
-        </Badge>
+        <Badge accent={range.preset === 'todo' ? 'sky' : 'violet'}>{range.label}</Badge>
         <span>{formatNumber(data.totalEvents)} eventos · backend: <span className="font-medium text-neutral-400">{data.backend}</span></span>
       </div>
+
+      {/* Toggle de 3 vistas: Argentina / LATAM / Unificado */}
+      <VersionToggle value={versionView} onChange={setVersionView} />
+
+      {versionView === 'unified' && (
+        <Banner tone="info">
+          ℹ️ <strong>Vista unificada:</strong> el embudo paso a paso usa los pasos de{' '}
+          <strong>Argentina</strong> como referencia; LATAM se alinea por posición y puede no
+          coincidir 1:1. Los totales (inicios, ventas, etc.) sí suman correctamente — incluye además
+          el histórico que quedó sin versión asignada.
+        </Banner>
+      )}
 
       {data.backend === 'memory' && (
         <Banner tone="warning">
@@ -300,18 +315,36 @@ export function FunnelView({ initialData }: Props) {
       {error && <Banner tone="error">Error: {error}</Banner>}
 
       {/* KPIs */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Empezaron el quiz" value={formatNumber(data.totalStarts)} subtitle="100% — referencia" accent="violet" />
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <StatCard
+          label="Vieron la landing"
+          value={formatNumber(landingCount)}
+          subtitle={baseMode === 'landing' ? '100% — referencia' : 'Entraron al funnel'}
+          accent="violet"
+        />
+        <StatCard
+          label="Iniciaron el quiz"
+          value={formatNumber(startedCount)}
+          subtitle={landingCount > 0 ? `${formatPct(landingToStartPct)} de la landing` : '—'}
+          accent={baseMode === 'start' ? 'violet' : 'sky'}
+          icon={landingToStartPct < 50 && landingCount > 0 ? <TrendDown size={18} weight="bold" /> : undefined}
+        />
         <StatCard
           label="Llegaron a la venta"
           value={formatNumber(data.totalCompletes)}
-          subtitle={data.totalStarts > 0 ? `${formatPct((data.totalCompletes / data.totalStarts) * 100)} del quiz` : '—'}
+          subtitle={baseRef > 0 ? `${formatPct((data.totalCompletes / baseRef) * 100)} ${baseMode === 'landing' ? 'de la landing' : 'del inicio'}` : '—'}
           accent="sky"
+        />
+        <StatCard
+          label="Clickearon comprar"
+          value={data.totalCheckoutClicks ?? '—'}
+          subtitle={baseRef > 0 && data.totalCheckoutClicks ? `${formatPct((data.totalCheckoutClicks / baseRef) * 100)} ${baseMode === 'landing' ? 'de la landing' : 'del inicio'}` : '—'}
+          accent="amber"
         />
         <StatCard
           label="Compraron"
           value={data.totalSales ?? '—'}
-          subtitle={data.totalStarts > 0 && data.totalSales ? `${formatPct((data.totalSales / data.totalStarts) * 100)} del quiz` : '—'}
+          subtitle={baseRef > 0 && data.totalSales ? `${formatPct((data.totalSales / baseRef) * 100)} ${baseMode === 'landing' ? 'de la landing' : 'del inicio'}` : '—'}
           accent="emerald"
         />
         <StatCard
@@ -328,6 +361,7 @@ export function FunnelView({ initialData }: Props) {
         icon={<FlagBanner size={18} weight="fill" />}
         title="Embudo — % que llega a cada paso"
         subtitle="De izquierda a derecha. El alto de cada sección = % que llega. Hover para detalle."
+        actions={<BaseToggle value={baseMode} onChange={setBaseMode} landingToStartPct={landingToStartPct} />}
       >
         {data.totalStarts > 0 ? (
           <FunnelShape steps={shapeSteps} height={280} minWidth={760} />
@@ -336,20 +370,19 @@ export function FunnelView({ initialData }: Props) {
             {data.totalEvents > 0 ? (
               <>
                 <p className="text-sm text-neutral-300">
-                  {isAccumulated ? 'En el acumulado' : formatDayLabel(selectedDay)} hubo{' '}
+                  Para {range.label} hubo{' '}
                   <strong>{formatNumber(data.totalEvents)}</strong> eventos, pero todavía{' '}
-                  <strong>nadie empezó el quiz</strong> (slide 0 = 0).
+                  <strong>nadie entró a la landing</strong> (slide 0 = 0).
                 </p>
                 <p className="text-xs text-neutral-500">
-                  {formatNumber(data.totalLandingViews)} vistas de landing ·{' '}
                   {formatNumber(data.totalCompletes)} llegaron a la venta ·{' '}
-                  {formatNumber(data.totalSales ?? 0)} compraron. El embudo usa
-                  &quot;empezaron&quot; como 100%, por eso aún no se dibuja.
+                  {formatNumber(data.totalSales ?? 0)} compraron. El embudo usa la{' '}
+                  base seleccionada como 100%, por eso aún no se dibuja.
                 </p>
               </>
             ) : (
               <p className="text-sm text-neutral-500">
-                Sin datos para {isAccumulated ? 'el acumulado' : formatDayLabel(selectedDay)}.
+                Sin datos para {range.label}.
               </p>
             )}
           </div>
@@ -366,6 +399,57 @@ export function FunnelView({ initialData }: Props) {
           </div>
         )}
       </SectionCard>
+
+      {/* Test FULL-FUNNEL — Argentina (A vs B) */}
+      {data.funnelVariantBreakdown && data.funnelVariantBreakdown.length > 0 && (
+        <SectionCard
+          icon={<Flask size={18} weight="fill" />}
+          title="Test full-funnel — Argentina (A vs B)"
+          subtitle="Compara el funnel ENTERO: A (control) vs B (rebrand mujer). Inicios = llegaron a la 1ª pregunta · % completó / vio venta / click / compró son tasas paso a paso · CVR total = compras sobre inicios (el KPI estrella)."
+          bodyClassName="p-0"
+        >
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-left text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                <tr className="border-b border-white/[0.06]">
+                  <th className="px-5 py-2.5">Variante</th>
+                  <th className="px-5 py-2.5 text-right">Inicios</th>
+                  <th className="px-5 py-2.5 text-right">% completó</th>
+                  <th className="px-5 py-2.5 text-right">% vio venta</th>
+                  <th className="px-5 py-2.5 text-right">% click</th>
+                  <th className="px-5 py-2.5 text-right">% compró</th>
+                  <th className="px-5 py-2.5 text-right">CVR total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {data.funnelVariantBreakdown.map((row: FunnelVariantBreakdownRow) => {
+                  const isBestTotal =
+                    row.quizStarts > 0 && row.totalConversionRate === bestTotalConversion && bestTotalConversion > 0;
+                  return (
+                    <tr key={row.variant} className="transition-colors hover:bg-white/[0.02]">
+                      <td className="px-5 py-2.5 font-medium text-neutral-200">
+                        <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/[0.06] text-[11px] font-semibold text-neutral-300">{row.variant}</span>
+                        {FUNNEL_VARIANT_LABEL[row.variant]}
+                      </td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-300">{formatNumber(row.quizStarts)}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-400">{formatPct(row.completionRate)}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-400">{formatPct(row.salesViewRate)}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-400">{formatPct(row.checkoutRate)}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-400">{formatPct(row.purchaseRate)}</td>
+                      <td className="px-5 py-2.5 text-right">
+                        <Badge accent={isBestTotal ? 'emerald' : 'neutral'}>{formatPct(row.totalConversionRate)}</Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="px-5 py-3 text-[11px] text-neutral-600">
+            Solo tráfico de Argentina. La variante se asigna 50/50 por navegador y es estable durante todo el funnel (incluida la compra, atribuida server-side). Kill switch: <code className="rounded bg-black/30 px-1">NEXT_PUBLIC_AB_FUNNEL_ENABLED</code>. Para forzar una variante en QA agregá <code className="rounded bg-black/30 px-1">?af=A</code> (o B) a la URL del quiz.
+          </p>
+        </SectionCard>
+      )}
 
       {/* Backfill */}
       <SectionCard
@@ -447,6 +531,7 @@ export function FunnelView({ initialData }: Props) {
                   <th className="px-5 py-2.5 text-right">Empezaron</th>
                   <th className="px-5 py-2.5 text-right">Llegaron</th>
                   <th className="px-5 py-2.5 text-right">% Llega</th>
+                  <th className="px-5 py-2.5 text-right">Click</th>
                   <th className="px-5 py-2.5 text-right">Compraron</th>
                   <th className="px-5 py-2.5 text-right">CVR</th>
                 </tr>
@@ -460,6 +545,7 @@ export function FunnelView({ initialData }: Props) {
                       <td className="px-5 py-2.5 text-right tabular-nums text-neutral-300">{formatNumber(row.starts)}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums text-neutral-400">{formatNumber(row.completes)}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums text-neutral-500">{formatPct(completePct)}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums text-neutral-400">{formatNumber(row.checkoutClicks)}</td>
                       <td className="px-5 py-2.5 text-right tabular-nums font-semibold text-emerald-400">{formatNumber(row.purchases)}</td>
                       <td className="px-5 py-2.5 text-right">
                         <Badge accent={row.cvr >= 5 ? 'emerald' : row.cvr >= 2 ? 'amber' : 'neutral'}>{formatPct(row.cvr)}</Badge>
@@ -504,6 +590,84 @@ export function FunnelView({ initialData }: Props) {
           </div>
         </SectionCard>
       )}
+    </div>
+  );
+}
+
+function BaseToggle({
+  value,
+  onChange,
+  landingToStartPct,
+}: {
+  value: 'landing' | 'start';
+  onChange: (v: 'landing' | 'start') => void;
+  landingToStartPct: number;
+}) {
+  const opts: Array<{ key: 'landing' | 'start'; label: string }> = [
+    { key: 'landing', label: 'Landing' },
+    { key: 'start', label: 'Inicio del quiz' },
+  ];
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden text-xs text-neutral-500 sm:inline">Medir desde:</span>
+      <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+        {opts.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            className={cn(
+              'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+              value === o.key
+                ? 'bg-violet-500/20 text-violet-200 ring-1 ring-violet-500/30'
+                : 'text-neutral-400 hover:text-neutral-200',
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {value === 'landing' && (
+        <Badge accent={landingToStartPct < 50 ? 'rose' : landingToStartPct < 70 ? 'amber' : 'emerald'}>
+          {formatPct(landingToStartPct)} inician
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+function VersionToggle({
+  value,
+  onChange,
+}: {
+  value: 'ar' | 'latam' | 'unified';
+  onChange: (v: 'ar' | 'latam' | 'unified') => void;
+}) {
+  const opts: Array<{ key: 'ar' | 'latam' | 'unified'; label: string }> = [
+    { key: 'ar', label: '🇦🇷 Argentina' },
+    { key: 'latam', label: '🌎 LATAM' },
+    { key: 'unified', label: 'Unificado' },
+  ];
+  return (
+    <div className="flex items-center gap-2">
+      <span className="hidden text-xs text-neutral-500 sm:inline">Versión:</span>
+      <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+        {opts.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            className={cn(
+              'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+              value === o.key
+                ? 'bg-violet-500/20 text-violet-200 ring-1 ring-violet-500/30'
+                : 'text-neutral-400 hover:text-neutral-200',
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

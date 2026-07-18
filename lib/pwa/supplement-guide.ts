@@ -4,6 +4,8 @@ export type Supplement = {
   name: string;
   emoji: string;
   purpose: string;
+  /** Qué muestra la evidencia (en lenguaje claro, con la fuente al pie). */
+  evidence: string;
   whatToLookFor: string;
   dose: string;
   when: string;
@@ -24,6 +26,7 @@ export const SUPPLEMENTS: Supplement[] = [
     name: 'Probióticos',
     emoji: '🦠',
     purpose: 'Repoblar la microbiota con bacterias beneficiosas. Cuando tu flora está desequilibrada, hay más bacterias productoras de gas que las que debería. Los probióticos reequilibran eso.',
+    evidence: 'Las revisiones muestran beneficios en ciertos síntomas digestivos, pero son cepa- y dosis-dependientes (no todos sirven para lo mismo). Ojo: la calidad comercial varía mucho y muchos productos traen menos CFU vivos de los que prometen.',
     whatToLookFor: 'Cepas: Lactobacillus acidophilus + Bifidobacterium longum (mínimo). CFU: mínimo 10.000 millones por cápsula. Con cápsula entérica (que llega intacta al intestino). Refrigerado o con tecnología de liberación retardada.',
     dose: '1 cápsula (10.000 millones CFU)',
     when: 'Por la mañana, en ayunas o con el desayuno. Duración mínima: 30 días.',
@@ -39,6 +42,7 @@ export const SUPPLEMENTS: Supplement[] = [
     name: 'Magnesio (glicinato o citrato)',
     emoji: '✨',
     purpose: 'Regula la contracción y relajación muscular intestinal. Su deficiencia es una de las causas más frecuentes de estreñimiento y tensión abdominal. El glicinato tiene mejor tolerancia digestiva y efecto relajante.',
+    evidence: 'Una mayor ingesta de magnesio se asocia a menos estreñimiento crónico en estudios poblacionales. El citrato suma un efecto osmótico suave que ablanda y moviliza (útil si tendés a estreñimiento).',
     whatToLookFor: 'Magnesio glicinato: mejor tolerancia, efecto relajante. Magnesio citrato: buena absorción, suave efecto laxante (ideal si tenés estreñimiento). Evitar: óxido de magnesio (mala absorción, efecto laxante agresivo).',
     dose: '200-400mg por día',
     when: 'Con la cena. Ayuda a la relajación nocturna y al tránsito intestinal matutino.',
@@ -54,6 +58,7 @@ export const SUPPLEMENTS: Supplement[] = [
     name: 'L-Glutamina',
     emoji: '🧬',
     purpose: 'El aminoácido favorito del intestino. Es el principal combustible de las células del epitelio intestinal. Repara la permeabilidad intestinal aumentada ("leaky gut"). Especialmente útil si tuviste muchos antibióticos o inflamación crónica.',
+    evidence: 'Estudios muestran que la glutamina ayuda a proteger las uniones estrechas (tight junctions) y a reducir la hiperpermeabilidad intestinal. La mayor parte de la evidencia es preclínica o en poblaciones específicas.',
     whatToLookFor: 'L-Glutamina en polvo puro (sin saborizantes ni aditivos). Genérica y económica. Se vende en dietéticas y tiendas deportivas.',
     dose: '5g por día en polvo (no tiene sabor)',
     when: 'Disuelto en agua tibia, en ayunas. Ciclos de 30 días.',
@@ -69,6 +74,7 @@ export const SUPPLEMENTS: Supplement[] = [
     name: 'Zinc',
     emoji: '🛡️',
     purpose: 'Cofactor de más de 300 enzimas digestivas. Su deficiencia impacta directamente en la integridad de la mucosa intestinal. Señales de que te falta: uñas frágiles, cicatrización lenta, baja inmunidad.',
+    evidence: 'El zinc es cofactor enzimático esencial; junto con glutamina, vitamina D y fibra se estudia por su rol en la barrera intestinal. Suplementar tiene más sentido si hay déficit real.',
     whatToLookFor: 'Gluconato de zinc o bisglicinato de zinc (mejor absorción que sulfato). Disponible en farmacias como "Zinc + Vitamina C" o solo Zinc.',
     dose: '15-25mg por día',
     when: 'Con el almuerzo (en ayunas puede generar náuseas). No tomar junto con hierro (compiten por absorción).',
@@ -84,6 +90,7 @@ export const SUPPLEMENTS: Supplement[] = [
     name: 'Curcumina con piperina',
     emoji: '🌿',
     purpose: 'El antiinflamatorio natural más estudiado para el intestino. Inhibe las vías inflamatorias NF-κB directamente en el tejido intestinal. La piperina (pimienta negra) es indispensable porque sin ella se absorbe menos del 5%.',
+    evidence: 'La curcumina sola tiene biodisponibilidad muy baja; el estudio clásico de Shoba mostró que la piperina aumenta enormemente su absorción. Revisiones la han evaluado para molestias digestivas y SII, con resultados prometedores pero aún heterogéneos.',
     whatToLookFor: 'Extracto estandarizado al 95% de curcuminoides + piperina (pimienta negra). Sin piperina, la curcumina tiene biodisponibilidad bajísima. Con piperina, sube al 60%.',
     dose: '500-1000mg de extracto de curcumina por día',
     when: 'Con las comidas (almuerzo idealmente). Se puede dividir en 2 tomas.',

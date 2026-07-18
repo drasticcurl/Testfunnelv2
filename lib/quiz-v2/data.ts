@@ -202,13 +202,10 @@ export const slidesV3: SlideV3[] = [
   // ── SLIDE 19: Diagnóstico ─────────────────────────────────────────────────
   { type: 'diagnosis_result', id: 'diagnosis_result' },
 
-  // ── SLIDE 20: Captura de email (post-diagnóstico, momento de máximo compromiso) ──
-  { type: 'email_capture', id: 'email' },
-
-  // ── SLIDE 21: Loading ─────────────────────────────────────────────────────
+  // ── SLIDE 20: Loading ─────────────────────────────────────────────────────
   { type: 'loading_steps', id: 'loading_steps' },
 
-  // ── SLIDE 22: Sales Page ──────────────────────────────────────────────────
+  // ── SLIDE 21: Sales Page ──────────────────────────────────────────────────
   { type: 'sales_page', id: 'sales_page' },
 ];
 
@@ -217,30 +214,6 @@ export const SLIDES_WITHOUT_PROGRESS = new Set([
   'landing_hook',
   'expert_bridge',
   'diagnosis_result',
-  'email_capture',
   'loading_steps',
   'sales_page',
 ]);
-
-// ─── Legacy aliases (no romper imports existentes) ───────────────────────────
-/** @deprecated Usar slidesV3 */
-export const slidesV2 = slidesV3;
-
-/** @deprecated */
-export type ProgressSection = string;
-
-/** @deprecated */
-export const PROGRESS_SECTIONS: { upTo: number; label: string }[] = [
-  { upTo: 7,   label: 'Diagnóstico' },
-  { upTo: 14,  label: 'Tu perfil' },
-  { upTo: 19,  label: 'Tu plan' },
-  { upTo: 999, label: 'Casi listo' },
-];
-
-/** @deprecated */
-export function getProgressSection(step: number): string {
-  for (const s of PROGRESS_SECTIONS) {
-    if (step <= s.upTo) return s.label;
-  }
-  return 'Casi listo';
-}

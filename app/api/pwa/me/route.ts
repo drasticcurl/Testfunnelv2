@@ -1,7 +1,7 @@
 /**
  * GET /api/pwa/me
  *
- * Devuelve el usuario logueado a partir de la cookie de sesión firmada.
+ * Devuelve el usuario logueado a partir de la sesión de Supabase Auth.
  *
  * Respuestas:
  *   200 { authenticated: true,  email, nombre, testMode } — sesión válida
@@ -12,22 +12,41 @@
  */
 
 import { NextResponse } from 'next/server';
-import { readSession } from '@/lib/pwa/session';
-import { isTestMode } from '@/lib/pwa/test-mode';
+import { createPwaServerClient } from '@/lib/pwa/supabase-server';
+import { isTestMode, TEST_USER } from '@/lib/pwa/test-mode';
 import { deriveNameFromEmail } from '@/lib/pwa/get-user-name';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
-  const session = await readSession();
-  if (!session) {
-    return NextResponse.json({ authenticated: false });
+  // Test mode: preserva el desarrollo local sin Supabase configurado.
+  if (isTestMode()) {
+    return NextResponse.json({
+      authenticated: true,
+      email: TEST_USER.email,
+      nombre: TEST_USER.nombre,
+      testMode: true,
+    });
   }
 
-  return NextResponse.json({
-    authenticated: true,
-    email: session.email,
-    nombre: deriveNameFromEmail(session.email),
-    testMode: isTestMode(),
-  });
+  try {
+    const supabase = await createPwaServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ authenticated: false });
+    }
+
+    return NextResponse.json({
+      authenticated: true,
+      email: user.email,
+      nombre: deriveNameFromEmail(user.email),
+      testMode: false,
+    });
+  } catch (err) {
+    console.error('[pwa/me] Error:', err);
+    return NextResponse.json({ authenticated: false });
+  }
 }

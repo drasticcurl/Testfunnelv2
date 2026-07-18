@@ -95,9 +95,13 @@ export function SlideLoadingWithQuestions({ slide, onComplete }: Props) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = window as any;
         if (w.fbq) {
+          // content_name/category neutralizados (antes "Resultados Tipo X" /
+          // "Quiz Anti-Hinchazón V2"). Meta clasifica cuentas como Health Sensitive
+          // Category cuando ve estas etiquetas en eventos del pixel; los nombres
+          // reales de los productos viven en el backend / Shopify, no acá.
           w.fbq('track', 'ViewContent', {
-            content_name: `Resultados Tipo ${tipo}`,
-            content_category: 'Quiz Anti-Hinchazón V2',
+            content_name: `quiz-result-type-${tipo}`,
+            content_category: 'Personal Plan Quiz V2',
           });
         }
       }
@@ -111,8 +115,8 @@ export function SlideLoadingWithQuestions({ slide, onComplete }: Props) {
           event: 'ViewContent',
           fbc: meta.fbc,
           fbp: meta.fbp,
-          contentName: `Resultados Tipo ${tipo}`,
-          contentCategory: 'Quiz Anti-Hinchazón V2',
+          contentName: `quiz-result-type-${tipo}`,
+          contentCategory: 'Personal Plan Quiz V2',
           custom: { quiz_version: 'v2', tipo, utms },
         }),
       }).catch(() => {});

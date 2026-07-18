@@ -1,5 +1,7 @@
 // lib/pwa/plan-data.ts — Contenido completo de los 30 días del plan
 
+import { RICE_WATER_PATH } from '@/lib/pwa/rice-water';
+
 export type Meal = {
   moment: string;
   emoji: string;
@@ -7,6 +9,8 @@ export type Meal = {
   time: string;
   description: string;
   ingredients?: string[];
+  /** Enlace opcional a una guía relacionada (ej. la receta del Agua de Arroz). */
+  link?: { href: string; label: string };
 };
 
 export type DayPlan = {
@@ -76,7 +80,7 @@ const PLAN_DAYS_BASE: DayPlan[] = [
         ingredients: ['Calabaza', 'Jengibre fresco', 'Ajo', 'Huevo', 'Vinagre', 'Perejil'],
       },
     ],
-    tip: 'Primer agua de arroz: dejá ½ taza de arroz lavado en remojo toda la noche con 2 tazas de agua. Mañana al levantarte, colás y tomás el agua en ayunas. Este es el paso más importante del método.',
+    tip: 'Primer agua de arroz: el secreto está en el frío. Cociná ½ taza de arroz blanco, dejalo enfriar y, dentro de las 2 horas, guardalo tapado en la heladera 12-24 h para activar el almidón resistente. A la noche, poné 2 cucharadas de ese arroz frío en un vaso con 200 ml de agua y dejalo reposar en la heladera. Al levantarte, colás, entibiás (sin hervir), le ponés unas gotas de limón y tomás en ayunas. Nunca dejes el arroz cocido fuera de la heladera. Este es el paso más importante del método.',
     requiresUpsell: false,
   },
   {
@@ -1673,8 +1677,9 @@ const AGUA_DE_ARROZ_EN_AYUNAS: Meal = {
   name: 'Vaso de Agua de Arroz (ritual TURBO)',
   time: '2 min',
   description:
-    'Apenas te levantás, antes de cualquier otra cosa, tomá 1 vaso (200 ml) de agua de arroz tibia, despacio. Preparación la noche anterior: lavá ½ taza de arroz blanco, cubrí con 2 tazas de agua y dejá reposar 8 horas; a la mañana colá y tomá el agua. Es el paso más importante del método: el almidón resistente alimenta tu microbiota, desinflama el intestino y activa el modo TURBO. Podés sumarle unas gotas de limón.',
-  ingredients: ['Arroz blanco', 'Agua', 'Limón (opcional)'],
+    'Apenas te levantás, antes de cualquier otra cosa, tomá 1 vaso (200 ml) de agua de arroz tibia, despacio. Se prepara con arroz cocido y enfriado en la heladera 12-24 h (así se activa el almidón resistente), reposado en agua dentro de la heladera durante la noche y colado a la mañana; entibialo sin hervir y sumale unas gotas de limón. Importante: el arroz cocido siempre va a la heladera, nunca queda a temperatura ambiente. Es el paso más importante del método: el almidón resistente alimenta tu microbiota, desinflama el intestino y activa el modo TURBO. Tocá "Ver receta completa" para el paso a paso seguro.',
+  ingredients: ['Arroz blanco', 'Agua purificada', 'Limón'],
+  link: { href: RICE_WATER_PATH, label: 'Ver receta completa y segura' },
 };
 
 /**

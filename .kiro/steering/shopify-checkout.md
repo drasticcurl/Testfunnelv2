@@ -94,7 +94,7 @@ mapean product IDs a tiers.
 
 ## Precios (fuente única: lib/quiz-v2/config.ts → PRICING, en ARS)
 
-- Front: **$6.000**
+- Front: **$8.000**
 - Upsell: **$19.900**
 - Downsell: **$12.900** (mismo producto que el upsell, $7.000 menos)
 

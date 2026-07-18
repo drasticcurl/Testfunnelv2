@@ -1,8 +1,11 @@
 'use client';
 
 /**
- * UpsellPageTracker - dispara eventos de tracking al entrar a /upsell y /downsell.
+ * UpsellPageTracker - dispara eventos de tracking al entrar a /upsell, /upsell2
+ * y /downsell, y re-hidrata los UTMs desde la URL a localStorage.
  *
+ *  - captureUTMs(): persiste los UTMs que lleguen en la query (link del email
+ *    post-compra) para que el checkout de la etapa siguiente los atribuya bien.
  *  - Meta Pixel (client-side) + POST /api/track (CAPI server-side)
  *
  * Solo dispara ViewContent. El "Purchase" del front se dispara ÚNICAMENTE
@@ -19,7 +22,7 @@
  */
 
 import { useEffect } from 'react';
-import { getMetaCookies } from '@/lib/cookies';
+import { captureUTMs, getMetaCookies } from '@/lib/cookies';
 
 type FbqWindow = Window & { fbq?: (...args: unknown[]) => void };
 
@@ -33,6 +36,19 @@ interface Props {
 
 export function UpsellPageTracker({ page }: Props) {
   useEffect(() => {
+    // Re-hidrata los UTMs desde la URL a localStorage.
+    //
+    // A /upsell y /upsell2 se llega desde el LINK del email post-compra, que a
+    // veces se abre en OTRO dispositivo/navegador (compró en la compu, abre el
+    // mail en el celu) → ahí el localStorage está vacío y el checkout del upsell
+    // caía en "(directo)". Si el link del email trae los UTMs en la query
+    // (propagados desde note_attributes de la orden), captureUTMs los persiste
+    // acá y withCheckoutAttribution los vuelve a mandar al checkout de Shopify.
+    //
+    // captureUTMs es idempotente: si NO hay UTMs en la URL, no borra los que ya
+    // estuvieran guardados; si hay, mergea (los nuevos pisan).
+    captureUTMs();
+
     const contentName = page === 'offer' ? 'Upsell Offer 30 Dias' : 'Upsell Checkout 30 Dias';
     const meta = getMetaCookies();
 

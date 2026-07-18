@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { PLAN_DATA } from '@/lib/pwa/plan-data';
 import DayCard, { type DayCardStatus } from '@/components/pwa/plan/DayCard';
 import { isTestMode } from '@/lib/pwa/test-mode';
+import { Card } from '@/components/pwa/ui/Card';
+import { Button } from '@/components/pwa/ui/Button';
+import { computeStagger } from '@/lib/pwa/ui/motion';
 
 const PROGRESS_KEY = 'pwa_day_progress';
 
@@ -61,12 +64,12 @@ export default function PlanPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header — page-title level (heading family, 30px, semibold). */}
       <div>
-        <h1 className="font-serif font-semibold text-2xl text-charcoal">
+        <h1 className="font-heading font-semibold text-3xl text-charcoal">
           Tu Plan Día a Día
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="font-body text-sm text-muted mt-1">
           {completedCount === 0
             ? 'Empezá el día 1 y avanzá a tu ritmo'
             : `${completedCount} de ${totalDays} días completados`}
@@ -74,18 +77,18 @@ export default function PlanPage() {
       </div>
 
       {/* Progress bar */}
-      <div className="bg-white rounded-[16px] p-4 border border-gray-100 shadow-sm">
+      <Card>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-gray-600">Progreso</span>
-          <span className="text-xs font-semibold" style={{ color: 'var(--terracotta)' }}>{progressPercent}%</span>
+          <span className="font-body text-xs font-medium text-muted">Progreso</span>
+          <span className="font-body text-xs font-semibold text-terracotta">{progressPercent}%</span>
         </div>
-        <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--warm-border)' }}>
+        <div className="h-2 rounded-full overflow-hidden bg-warm-border">
           <div
-            className="h-full rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progressPercent}%`, background: 'linear-gradient(to right, var(--terracotta), var(--terracotta-light))' }}
+            className="h-full rounded-full bg-gradient-to-r from-terracotta to-terracotta-light transition-all duration-slow ease-standard"
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
-      </div>
+      </Card>
 
       {/* Week sections */}
       {[
@@ -97,20 +100,28 @@ export default function PlanPage() {
         // Don't show weeks 2-4 if no upsell and not in test mode
         if (weekIdx > 0 && !hasUpsell) return null;
 
+        // Single consistent, capped inter-item entrance delay per week list.
+        const delays = computeStagger(week.days.length);
+
         return (
           <div key={weekIdx} className="space-y-3">
-            <h2 className="font-serif font-medium text-base text-charcoal pl-1">
+            <h2 className="font-heading font-medium text-base text-charcoal pl-1">
               {week.label}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {week.days.map((dayPlan) => (
-                <DayCard
+              {week.days.map((dayPlan, dayIdx) => (
+                <div
                   key={dayPlan.day}
-                  day={dayPlan.day}
-                  title={dayPlan.title}
-                  subtitle={dayPlan.subtitle}
-                  status={getDayStatus(dayPlan.day, progress, hasUpsell)}
-                />
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${delays[dayIdx]}ms` }}
+                >
+                  <DayCard
+                    day={dayPlan.day}
+                    title={dayPlan.title}
+                    subtitle={dayPlan.subtitle}
+                    status={getDayStatus(dayPlan.day, progress, hasUpsell)}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -119,16 +130,16 @@ export default function PlanPage() {
 
       {/* Upsell CTA if no upsell */}
       {!hasUpsell && (
-        <div className="rounded-2xl p-4 text-center border" style={{ backgroundColor: 'var(--terracotta-soft)', borderColor: 'rgba(192,85,58,0.3)' }}>
-          <p className="font-serif font-semibold" style={{ color: 'var(--charcoal)' }}>
+        <div className="rounded-lg p-4 text-center border border-terracotta/30 bg-terracotta-soft">
+          <p className="font-heading font-semibold text-charcoal">
             ¿Querés los 30 días completos?
           </p>
-          <p className="text-sm mt-1 mb-3" style={{ color: 'var(--muted)' }}>
+          <p className="font-body text-sm mt-1 mb-3 text-muted">
             Desbloqueá las semanas 2, 3 y 4 con el Programa de 30 Días TURBO
           </p>
-          <button className="text-white font-semibold text-sm px-6 py-2.5 rounded-full hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--terracotta), var(--terracotta-light))' }}>
+          <Button variant="primary">
             DESBLOQUEAR PROGRAMA TURBO →
-          </button>
+          </Button>
         </div>
       )}
     </div>

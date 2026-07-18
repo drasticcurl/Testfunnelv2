@@ -11,6 +11,11 @@ import {
 } from '@/lib/pwa/dietary-preferences';
 import RecipeCard from '@/components/pwa/recetas/RecipeCard';
 import MomentFilter from '@/components/pwa/recetas/MomentFilter';
+import VipRecipeSection from '@/components/pwa/recetas/VipRecipeSection';
+import { Badge } from '@/components/pwa/ui/Badge';
+import { Button } from '@/components/pwa/ui/Button';
+import { EmptyState } from '@/components/pwa/ui/EmptyState';
+import { computeStagger } from '@/lib/pwa/ui/motion';
 
 const BATCH_SIZE = 8;
 
@@ -57,6 +62,9 @@ export default function RecetasPage() {
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
+  // Single consistent, capped inter-item entrance delay for the recipe grid.
+  const cardDelays = computeStagger(visible.length);
+
   const handleLoadMore = () => {
     setVisibleCount((prev) => prev + BATCH_SIZE);
   };
@@ -68,30 +76,27 @@ export default function RecetasPage() {
 
   return (
     <div className="pb-24">
-      {/* Header */}
+      {/* Header — page-title level (heading family, 30px, semibold). */}
       <div className="px-4 pt-6 pb-4">
-        <h1 className="font-serif text-2xl text-charcoal font-semibold">
+        <h1 className="font-heading text-3xl text-charcoal font-semibold">
           Tus recetas
         </h1>
-        <p className="text-sm text-charcoal/60 mt-1">
+        <p className="font-body text-sm text-muted mt-1">
           {filtered.length} recetas del protocolo para cada momento del día
         </p>
       </div>
 
       {/* Active dietary badges */}
       {hasActiveDietary && (
-        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+        <div className="px-4 pb-3 flex flex-wrap items-center gap-1.5">
           {activeLabels.map((label) => (
-            <span
-              key={label}
-              className="inline-flex items-center gap-1 text-[11px] font-medium bg-sage-soft text-sage px-2.5 py-1 rounded-full"
-            >
-              ✓ {label}
-            </span>
+            <Badge key={label} tone="neutral">
+              {label}
+            </Badge>
           ))}
           <a
             href="/pwa/preferencias"
-            className="inline-flex items-center text-[11px] text-charcoal/50 hover:text-sage px-2 py-1 underline"
+            className="inline-flex items-center font-body text-xs text-muted hover:text-terracotta px-2 py-1 underline"
           >
             Cambiar
           </a>
@@ -105,44 +110,45 @@ export default function RecetasPage() {
 
       {/* Grid 2x2 mobile, 3 cols desktop */}
       <div className="px-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-        {visible.map((recipe) => (
-          <RecipeCard
+        {visible.map((recipe, idx) => (
+          <div
             key={recipe.id}
-            recipe={recipe}
-            isLocked={recipe.isExtra && !testMode}
-          />
+            className="animate-fade-in"
+            style={{ animationDelay: `${cardDelays[idx]}ms` }}
+          >
+            <RecipeCard
+              recipe={recipe}
+              isLocked={recipe.isExtra && !testMode}
+            />
+          </div>
         ))}
       </div>
 
       {/* Load more */}
       {hasMore && (
         <div className="flex justify-center mt-6 px-4">
-          <button
-            onClick={handleLoadMore}
-            className="px-6 py-3 bg-sage-soft text-sage font-medium text-sm rounded-full hover:bg-sage/20 transition-colors"
-          >
+          <Button variant="outline" onClick={handleLoadMore}>
             Cargar más recetas
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Empty state */}
       {visible.length === 0 && (
-        <div className="text-center py-12 px-4">
-          <span className="text-4xl block mb-3">🍽️</span>
-          <p className="text-charcoal/60 text-sm">
-            No hay recetas para este filtro.
-          </p>
-          {hasActiveDietary && (
-            <a
-              href="/pwa/preferencias"
-              className="text-sage text-sm font-medium mt-2 inline-block hover:underline"
-            >
-              Ajustá tus preferencias dietéticas
-            </a>
-          )}
-        </div>
+        <EmptyState
+          iconName="recipes"
+          message={
+            hasActiveDietary
+              ? 'No hay recetas para este filtro con tus preferencias dietéticas.'
+              : 'No hay recetas para este filtro.'
+          }
+          actionLabel="Ver todas las recetas"
+          onAction={() => handleFilterChange('todas')}
+        />
       )}
+
+      {/* Sección extra: recetario premium VIP (solo si está desbloqueado) */}
+      <VipRecipeSection />
     </div>
   );
 }

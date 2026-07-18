@@ -11,7 +11,6 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { slidesV2 } from '@/lib/quiz-v2/data';
 import { cleanUtmValue } from '@/lib/utm';
 import { getArgentinaDay, DAY_SENTINEL } from './day';
 import type {
@@ -21,7 +20,10 @@ import type {
   FunnelSlideRow,
   TrackProps,
   UTMBreakdownRow,
+  QuizVersion,
 } from './store';
+import { buildVariantBreakdown, buildFunnelVariantBreakdown } from './store';
+import { selectSlides } from './store';
 
 // ─── Singleton del client ──────────────────────────────────────────────────
 
@@ -63,7 +65,10 @@ export class SupabaseStore implements FunnelStore {
     const utm_medium = '(directo)';
     const utm_campaign = cleanUtmValue(props.utms?.utm_campaign) || '(directo)';
     const utm_content = '(directo)';
-    const quiz_version = props.quizVersion || 'v1';
+    // Normalizamos la versión: las escrituras nuevas son siempre 'ar' | 'latam'.
+    // Cualquier valor que no sea 'latam' (incluido el legacy 'v3'/'v1' que
+    // mandan callers server-side por compat) se guarda como 'ar'.
+    const quiz_version: QuizVersion = props.quizVersion === 'latam' ? 'latam' : 'ar';
 
     // Día calendario en GMT-3 (Argentina). Ver lib/admin/day.ts.
     const day = getArgentinaDay();
@@ -124,7 +129,7 @@ export class SupabaseStore implements FunnelStore {
           count: 1,
         },
         {
-          onConflict: 'event_name,slide,utm_source,utm_medium,utm_campaign,utm_content,day',
+          onConflict: 'event_name,slide,utm_source,utm_medium,utm_campaign,utm_content,day,quiz_version',
           ignoreDuplicates: false,
         },
       );
@@ -145,7 +150,7 @@ export class SupabaseStore implements FunnelStore {
           count: 1,
         },
         {
-          onConflict: 'event_name,slide,utm_source,utm_medium,utm_campaign,utm_content',
+          onConflict: 'event_name,slide,utm_source,utm_medium,utm_campaign,utm_content,quiz_version',
           ignoreDuplicates: false,
         },
       );
@@ -174,30 +179,59 @@ export class SupabaseStore implements FunnelStore {
     let rows: Array<Record<string, unknown>> | null = null;
     let dayAvailable = true;
 
+    // IMPORTANTE: paginamos. Supabase/PostgREST devuelve como máximo 1000 filas
+    // por request (config `max-rows`). Cuando `funnel_counts` supera las 1000
+    // filas, un `select` plano corta en silencio las filas más nuevas → los
+    // días recientes (incluido HOY) "desaparecen" del dashboard aunque el
+    // tracking esté guardando bien. Por eso traemos TODAS las filas en lotes.
     {
-      let query = client.from('funnel_counts').select(withDayCols);
-      if (filters.version) query = query.eq('quiz_version', filters.version);
-      const { data, error } = await query;
-      if (!error) {
-        rows = data ?? [];
+      const withDay = await this.fetchAllRows(client, withDayCols, filters.version);
+      if (!withDay.error) {
+        rows = withDay.data ?? [];
       } else {
         console.warn(
           '[admin/supabase-store] select con `day` falló, reintentando sin day:',
-          error.message,
+          withDay.error.message,
         );
         dayAvailable = false;
-        let q2 = client.from('funnel_counts').select(noDayCols);
-        if (filters.version) q2 = q2.eq('quiz_version', filters.version);
-        const { data: data2, error: error2 } = await q2;
-        if (error2) {
-          console.error('[admin/supabase-store] getFunnel query failed:', error2.message);
-          throw new Error(`Supabase query failed: ${error2.message}`);
+        const noDay = await this.fetchAllRows(client, noDayCols, filters.version);
+        if (noDay.error) {
+          console.error('[admin/supabase-store] getFunnel query failed:', noDay.error.message);
+          throw new Error(`Supabase query failed: ${noDay.error.message}`);
         }
-        rows = data2 ?? [];
+        rows = noDay.data ?? [];
       }
     }
 
     return this.computeFunnel(rows, filters, dayAvailable);
+  }
+
+  /**
+   * Trae TODAS las filas de `funnel_counts` paginando de a 1000 (límite de
+   * PostgREST `max-rows`). Sin esto, las filas más nuevas se pierden cuando la
+   * tabla supera las 1000 filas, y el dashboard deja de ver los días recientes.
+   */
+  private async fetchAllRows(
+    client: SupabaseClient,
+    cols: string,
+    version?: QuizVersion,
+  ): Promise<{ data: Array<Record<string, unknown>> | null; error: { message: string } | null }> {
+    const PAGE = 1000;
+    const all: Array<Record<string, unknown>> = [];
+    let from = 0;
+    for (;;) {
+      let q = client.from('funnel_counts').select(cols);
+      if (version) q = q.eq('quiz_version', version);
+      const { data, error } = await q
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) return { data: null, error };
+      const batch = (data ?? []) as unknown as Array<Record<string, unknown>>;
+      all.push(...batch);
+      if (batch.length < PAGE) break;
+      from += PAGE;
+    }
+    return { data: all, error: null };
   }
 
   async reset(): Promise<void> {
@@ -242,8 +276,17 @@ export class SupabaseStore implements FunnelStore {
       ? Array.from(new Set(rows.map((r) => r.day))).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0))
       : [];
 
-    const dayFilter = dayAvailable && filters.day && filters.day !== 'all' ? filters.day : null;
-    const filteredRows = dayFilter ? rows.filter((r) => r.day === dayFilter) : rows;
+    const hasRange = dayAvailable && Boolean(filters.from && filters.to);
+    const dayFilter =
+      !hasRange && dayAvailable && filters.day && filters.day !== 'all' ? filters.day : null;
+    const filteredRows = hasRange
+      ? rows.filter((r) => r.day >= (filters.from as string) && r.day <= (filters.to as string))
+      : dayFilter
+        ? rows.filter((r) => r.day === dayFilter)
+        : rows;
+    const effectiveDay = hasRange
+      ? (filters.from === filters.to ? (filters.from as string) : null)
+      : dayFilter;
 
     const perSlide: Record<number, number> = {};
     let landingViews = 0;
@@ -294,8 +337,8 @@ export class SupabaseStore implements FunnelStore {
 
     const totalStarts = perSlide[0] ?? 0;
 
-    // Use quiz slides (single version now)
-    const activeSlides = slidesV2;
+    // Slides según la versión solicitada (AR/unificado → slidesV3, LATAM → latam).
+    const activeSlides = selectSlides(filters.version);
 
     const slidesRows: FunnelSlideRow[] = activeSlides.map((s, i) => {
       const count = perSlide[i] ?? 0;
@@ -339,7 +382,9 @@ export class SupabaseStore implements FunnelStore {
       backend: 'supabase',
       utmBreakdown,
       countryBreakdown: [],
-      day: dayFilter,
+      variantBreakdown: buildVariantBreakdown(filteredRows),
+      funnelVariantBreakdown: buildFunnelVariantBreakdown(filteredRows),
+      day: effectiveDay,
       availableDays,
       dayTrackingActive: dayAvailable,
     };

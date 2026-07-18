@@ -5,7 +5,7 @@
  *  - Diagnóstico cuantificado con 3 barras (inflamación, riesgo, eficiencia metabólica)
  *  - Hook de curiosidad + autoridad
  *  - Datos numéricos (peso, altura, peso deseado) via sliders
- *  - Oferta única $6.000 ARS
+ *  - Oferta única $8.000 ARS
  */
 
 // ─── Question IDs ────────────────────────────────────────────────────────────

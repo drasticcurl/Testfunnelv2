@@ -32,6 +32,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendCapiEvent, getMetaCookiesFromRequest } from '@/lib/tracking';
 import { getStore } from '@/lib/admin/store';
+import { isAbEntryEvent } from '@/lib/quiz-v2/abEntry';
+import { isFunnelVariantEvent, funnelEventName, type FunnelVariant } from '@/lib/quiz-v2/funnelVariant';
+import { normalizeQuizVersion } from './normalizeQuizVersion';
 
 // crypto requiere Node runtime
 export const runtime = 'nodejs';
@@ -81,6 +84,62 @@ export async function POST(req: NextRequest) {
   const ip = ipHeader.split(',')[0]?.trim() || req.headers.get('x-real-ip') || undefined;
   const userAgent = req.headers.get('user-agent') ?? undefined;
 
+  const email = asString(body.email);
+
+  // ─── Puente de atribución por email (venta Tienda Nube) ──────────────────
+  // El Purchase del front AR llega desde el código de conversión de la página
+  // /success/ de Tienda Nube con el EMAIL del comprador, pero SIN los
+  // identificadores del funnel (es otro dominio: no hay _fbc/_fbp ni UTMs del
+  // click original). Recuperamos esos datos del lead por email (los guardó
+  // /api/submit-quiz en `clientes`) para:
+  //   1. atribuir la venta a la campaña correcta en /admin/funnel (no "(directo)")
+  //   2. enriquecer el match del Purchase en Meta CAPI con los fbc/fbp del funnel
+  // Best-effort: si no hay Supabase / lead / match, sigue como antes (email-only).
+  let bridgedFbc: string | undefined;
+  let bridgedFbp: string | undefined;
+  let bridgedUtms: Record<string, string> | undefined;
+  let bridgedFunnelVariant: FunnelVariant | undefined;
+  if (eventName === 'Purchase' && email) {
+    try {
+      const { getSupabase } = await import('@/lib/supabase');
+      const sb = getSupabase();
+      if (sb) {
+        const { data } = await sb
+          .from('clientes')
+          .select('fbc, fbp, utm_source, utm_medium, utm_campaign, utm_content, utm_term')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+        if (data) {
+          bridgedFbc = asString(data.fbc);
+          bridgedFbp = asString(data.fbp);
+          const u: Record<string, string> = {};
+          for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const) {
+            const v = (data as Record<string, unknown>)[k];
+            if (typeof v === 'string' && v.length > 0) u[k] = v;
+          }
+          if (Object.keys(u).length > 0) bridgedUtms = u;
+        }
+
+        // funnel_variant en una query SEPARADA y guardada: así, si la columna
+        // todavía no existe (migración 011 sin correr), el error aísla solo a
+        // esta lectura y NO rompe el puente fbc/fbp/utms de arriba.
+        try {
+          const { data: fvData } = await sb
+            .from('clientes')
+            .select('funnel_variant')
+            .eq('email', email.trim().toLowerCase())
+            .maybeSingle();
+          const fv = asString((fvData as Record<string, unknown> | null)?.funnel_variant);
+          if (fv === 'A' || fv === 'B') bridgedFunnelVariant = fv;
+        } catch (fvErr) {
+          console.warn('[track] funnel_variant bridge lookup skipped:', fvErr instanceof Error ? fvErr.message : String(fvErr));
+        }
+      }
+    } catch (err) {
+      console.error('[track] clientes bridge lookup failed:', err);
+    }
+  }
+
   // Construir custom_data
   const value = asNumber(body.value);
   const customData: Record<string, unknown> = {};
@@ -113,9 +172,11 @@ export async function POST(req: NextRequest) {
     const questionId =
       typeof customQid === 'string' && customQid.length > 0 ? customQid : undefined;
 
-    // UTMs: el cliente puede enviarlos en custom.utms (capturados del localStorage)
+    // UTMs: el cliente puede enviarlos en custom.utms (capturados del localStorage).
+    // Si no vienen (ej. Purchase de Tienda Nube desde /success/, otro dominio),
+    // usamos los UTMs del lead recuperados por email (bridgedUtms).
     const utmsRaw = customData.utms as unknown;
-    const utms: Record<string, string> | undefined =
+    const customUtms: Record<string, string> | undefined =
       utmsRaw && typeof utmsRaw === 'object' && !Array.isArray(utmsRaw)
         ? Object.fromEntries(
             Object.entries(utmsRaw as Record<string, unknown>).filter(
@@ -123,6 +184,8 @@ export async function POST(req: NextRequest) {
             ),
           ) as Record<string, string>
         : undefined;
+    const utms =
+      customUtms && Object.keys(customUtms).length > 0 ? customUtms : bridgedUtms;
 
     // Country: sent by client in custom.country (detected via geo-IP on client side)
     const countryRaw = customData.country as unknown;
@@ -133,11 +196,44 @@ export async function POST(req: NextRequest) {
         typeof slideNum === 'number' && Number.isFinite(slideNum) ? slideNum : undefined,
       questionId,
       utms,
-      quizVersion: customData.quiz_version === 'v2' ? 'v2' : customData.quiz_version === 'v3' ? 'v3' : 'v1',
+      quizVersion: normalizeQuizVersion(customData.quiz_version),
       country,
     });
+
+    // ─── Atribución de la venta del front al test full-funnel (af_<V>_purchase) ─
+    // El Purchase del front AR (Tienda Nube) llega por email desde /success/.
+    // Si el lead tiene un funnel_variant guardado (puente por email en
+    // /api/submit-quiz), registramos af_<V>_purchase para la comparación A vs B.
+    // Si no hay variante, la compra ya quedó contada en los totales generales
+    // (el Purchase genérico de arriba) y no se atribuye a una variante.
+    if (eventName === 'Purchase' && bridgedFunnelVariant) {
+      try {
+        await getStore().track(funnelEventName(bridgedFunnelVariant, 'purchase'), {
+          utms,
+          quizVersion: 'ar',
+          country,
+        });
+      } catch (afErr) {
+        console.warn('[track] af_<V>_purchase track failed:', afErr instanceof Error ? afErr.message : String(afErr));
+      }
+    }
   } catch (err) {
     console.error('[track] funnel store write failed:', err);
+  }
+
+  // ─── Eventos internos del test A/B de entrada ───────────────────────────
+  // Los eventos `ab_entry_*` solo sirven para medir el funnel por variante en
+  // el dashboard. NO se mandan a Meta CAPI (no queremos inflar el catálogo de
+  // eventos custom de Meta). Ya quedaron registrados en el store.
+  if (isAbEntryEvent(eventName)) {
+    return NextResponse.json({ ok: true, internal: true });
+  }
+
+  // ─── Eventos internos del test FULL-FUNNEL (af_*) ───────────────────────
+  // Mismo criterio que ab_entry_*: ya quedaron registrados en el store; NO se
+  // reenvían a Meta CAPI (son métricas internas del test A vs B).
+  if (isFunnelVariantEvent(eventName)) {
+    return NextResponse.json({ ok: true, internal: true });
   }
 
   const result = await sendCapiEvent({
@@ -145,10 +241,13 @@ export async function POST(req: NextRequest) {
     event_id: asString(body.eventId),
     event_source_url: asString(body.sourceUrl),
     user_data: {
-      email: asString(body.email),
+      email,
       ipAddress: ip,
       userAgent,
-      ...getMetaCookiesFromRequest(req, { fbc: body.fbc, fbp: body.fbp }),
+      ...getMetaCookiesFromRequest(req, {
+        fbc: bridgedFbc ?? body.fbc,
+        fbp: bridgedFbp ?? body.fbp,
+      }),
     },
     custom_data: Object.keys(customData).length > 0 ? customData : undefined,
   });

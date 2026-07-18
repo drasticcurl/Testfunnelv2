@@ -10,18 +10,24 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { isAdminAuthenticated } from '@/lib/admin/auth';
 import { getStore } from '@/lib/admin/store';
-import { getArgentinaDay } from '@/lib/admin/day';
+import { resolveRangeFromParam } from '@/lib/admin/range';
 import { FunnelView } from './FunnelView';
 
 export const dynamic = 'force-dynamic';
 
-export default async function FunnelPage() {
+export default async function FunnelPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   if (!isAdminAuthenticated(cookies())) {
     redirect('/admin');
   }
 
-  // Primer render = embudo de HOY (GMT-3). La UI permite cambiar de día.
-  const initialData = await getStore().getFunnel({ day: getArgentinaDay() });
+  // Primer render = embudo del período de la URL (`?range=`, default hoy, GMT-3).
+  const rangeParam = typeof searchParams?.range === 'string' ? searchParams.range : null;
+  const range = resolveRangeFromParam(rangeParam);
+  const initialData = await getStore().getFunnel({ from: range.fromDay, to: range.toDay });
 
   return <FunnelView initialData={initialData} />;
 }
