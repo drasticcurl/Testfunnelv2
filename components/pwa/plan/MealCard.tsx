@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Meal } from '@/lib/pwa/plan-data';
 import type { DietaryPreferences } from '@/lib/pwa/dietary-preferences';
@@ -36,8 +37,8 @@ export default function MealCard({ meal, dietaryPrefs }: MealCardProps) {
 
   return (
     <div
-      className={`bg-white rounded-[16px] border shadow-sm overflow-hidden cursor-pointer transition-shadow duration-200 hover:shadow-md ${
-        !passesFilter ? 'border-coral/30 bg-coral-soft/20' : 'border-gray-100'
+      className={`bg-warm rounded-lg border shadow-sm overflow-hidden cursor-pointer transition-shadow duration-base ease-standard hover:shadow-md ${
+        !passesFilter ? 'border-warning/40 bg-warning/10' : 'border-warm-border'
       }`}
       onClick={() => setIsExpanded(!isExpanded)}
     >
@@ -46,18 +47,18 @@ export default function MealCard({ meal, dietaryPrefs }: MealCardProps) {
         <span className="text-2xl flex-shrink-0">{meal.emoji}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+            <span className="font-body text-xs text-muted-light font-medium uppercase tracking-wide">
               {meal.moment}
             </span>
-            <span className="text-xs text-sage font-medium">
+            <span className="font-body text-xs text-terracotta font-medium">
               ⏱️ {meal.time}
             </span>
           </div>
-          <h4 className="text-sm font-semibold text-charcoal mt-0.5 truncate">
+          <h4 className="font-body text-sm font-semibold text-charcoal mt-0.5 truncate">
             {meal.name}
           </h4>
           {!passesFilter && (
-            <p className="text-[10px] text-coral font-medium mt-0.5">
+            <p className="font-body text-[10px] text-warning font-medium mt-0.5">
               ⚠️ Contiene {failedRestrictions.join(', ')} — ver alternativa abajo
             </p>
           )}
@@ -65,7 +66,7 @@ export default function MealCard({ meal, dietaryPrefs }: MealCardProps) {
         <motion.div
           animate={{ rotate: isExpanded ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          className="text-gray-400 flex-shrink-0"
+          className="text-muted-light flex-shrink-0"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -83,20 +84,30 @@ export default function MealCard({ meal, dietaryPrefs }: MealCardProps) {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-gray-50 pt-3">
-              <p className="text-sm text-gray-600 leading-relaxed">
+            <div className="px-4 pb-4 border-t border-warm-border pt-3">
+              <p className="font-body text-sm text-muted leading-relaxed">
                 {meal.description}
               </p>
+              {meal.link && (
+                <Link
+                  href={meal.link.href}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-3 inline-flex items-center gap-1.5 font-body text-[13px] font-semibold rounded-full px-3 py-1.5 transition-colors duration-fast ease-standard bg-terracotta-soft text-terracotta"
+                >
+                  🌾 {meal.link.label}
+                  <span aria-hidden>→</span>
+                </Link>
+              )}
               {meal.ingredients && meal.ingredients.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-semibold text-charcoal mb-1.5">
+                  <p className="font-body text-xs font-semibold text-charcoal mb-1.5">
                     Ingredientes:
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {meal.ingredients.map((ingredient, idx) => (
                       <span
                         key={idx}
-                        className="text-xs bg-sage-soft text-sage px-2 py-0.5 rounded-full"
+                        className="font-body text-xs bg-terracotta-soft text-terracotta px-2 py-0.5 rounded-full"
                       >
                         {ingredient}
                       </span>
@@ -106,11 +117,11 @@ export default function MealCard({ meal, dietaryPrefs }: MealCardProps) {
               )}
               {/* Dietary alternative suggestion */}
               {!passesFilter && (
-                <div className="mt-3 p-3 bg-sage-soft/50 rounded-xl border border-sage/10">
-                  <p className="text-xs font-semibold text-sage mb-1">
+                <div className="mt-3 p-3 bg-terracotta-soft rounded-md border border-warm-border">
+                  <p className="font-body text-xs font-semibold text-terracotta mb-1">
                     💡 Alternativa sugerida:
                   </p>
-                  <p className="text-xs text-charcoal/70 leading-relaxed">
+                  <p className="font-body text-xs text-muted leading-relaxed">
                     {getAlternativeSuggestion(failedRestrictions, meal.moment)}
                   </p>
                 </div>

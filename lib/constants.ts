@@ -30,6 +30,8 @@ export const STORAGE_KEYS = {
   quizState: 'agua-arroz-quiz-v3',
   /** UTMs + fbclid capturados en la landing (primer visit). */
   utm: 'anti-hinchazon-utms',
+  /** Estado del planner VIP editable (autoguardado en localStorage). */
+  vipPlanner: 'pwa_vip_planner',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

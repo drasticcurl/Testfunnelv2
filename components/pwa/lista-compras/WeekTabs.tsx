@@ -23,18 +23,18 @@ export default function WeekTabs({ activeWeek, onWeekChange, lockedWeeks }: Week
             key={week}
             onClick={() => !isLocked && onWeekChange(week)}
             disabled={isLocked}
-            className={`relative flex-1 py-2.5 px-3 rounded-full text-sm font-medium transition-colors ${
+            className={`relative flex-1 min-h-[44px] py-2.5 px-3 rounded-full font-body text-sm font-medium transition-colors ${
               isActive
-                ? 'text-white'
+                ? 'text-warm'
                 : isLocked
-                ? 'bg-gray-100 text-charcoal/30 cursor-not-allowed'
-                : 'bg-white text-charcoal/60 hover:bg-sage-soft'
+                ? 'bg-warm-border text-charcoal/30 cursor-not-allowed'
+                : 'bg-warm text-charcoal/60 hover:bg-terracotta-soft'
             }`}
           >
             {isActive && (
               <motion.div
                 layoutId="activeWeekTab"
-                className="absolute inset-0 bg-sage rounded-full"
+                className="absolute inset-0 bg-terracotta rounded-full"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}

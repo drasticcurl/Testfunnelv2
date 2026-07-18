@@ -2,7 +2,27 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ANTI_INFLAMMATORY_FOODS } from '@/lib/pwa/foods-data';
+import { ANTI_INFLAMMATORY_FOODS, ANTI_INFLAMMATORY_INTRO } from '@/lib/pwa/foods-data';
+import GuideSources from '@/components/pwa/guias/GuideSources';
+
+const ANTIINFLAMATORIOS_SOURCES = [
+  {
+    label: 'Harvard Health — Foods that fight inflammation',
+    url: 'https://www.health.harvard.edu/staying-healthy/foods-that-fight-inflammation',
+  },
+  {
+    label: 'Harvard Health — Fighting inflammation with food (dieta mediterránea)',
+    url: 'https://www.health.harvard.edu/nutrition/fighting-inflammation-with-food',
+  },
+  {
+    label: 'MDPI/IJMS 2024 — Ácidos grasos de cadena corta e inflamación',
+    url: 'https://www.mdpi.com/1422-0067/25/13/7379/html',
+  },
+  {
+    label: 'PMC — Glutamina y barrera intestinal (tight junctions)',
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4369670/',
+  },
+]; 
 
 const container = {
   hidden: { opacity: 0 },
@@ -41,8 +61,7 @@ export default function AntiinflamatoriosPage() {
           Tus 21 aliados antiinflamatorios
         </h1>
         <p className="text-charcoal/60 text-sm mt-2 leading-relaxed">
-          Estos son los que vas a ver repetirse en tu plan. Conseguilos. Son baratos 
-          y están en cualquier verdulería.
+          {ANTI_INFLAMMATORY_INTRO}
         </p>
       </motion.div>
 
@@ -58,9 +77,14 @@ export default function AntiinflamatoriosPage() {
               <span className="text-lg">{food.emoji}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-charcoal text-[14px] leading-tight">
-                {food.name}
-              </h3>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold text-charcoal text-[14px] leading-tight">
+                  {food.name}
+                </h3>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 bg-sage-soft text-sage">
+                  {food.compound}
+                </span>
+              </div>
               <div className="mt-2 space-y-1.5">
                 <p className="text-[13px] text-charcoal/70 leading-relaxed">
                   <span className="font-medium text-sage">Beneficio:</span>{' '}
@@ -85,6 +109,11 @@ export default function AntiinflamatoriosPage() {
           <span className="font-semibold">Si tenés que elegir solo 5:</span> jengibre, palta, 
           kiwi, hojas verdes y chía. Con esos cinco ya bajás la inflamación notablemente.
         </p>
+      </motion.div>
+
+      {/* Fuentes */}
+      <motion.div variants={item}>
+        <GuideSources sources={ANTIINFLAMATORIOS_SOURCES} />
       </motion.div>
     </motion.div>
   );

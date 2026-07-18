@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ResponsiveContainer,
   BarChart,
@@ -49,7 +50,8 @@ import {
   cn,
 } from '@/components/admin/ui';
 import { FunnelShape, type FunnelStep } from '@/components/admin/FunnelShape';
-import { getArgentinaDay, getArgentinaTime, formatDayLabel } from '@/lib/admin/day';
+import { getArgentinaTime } from '@/lib/admin/day';
+import { resolveRangeFromParam } from '@/lib/admin/range';
 
 type RevenueStats = {
   totalRevenue: number;
@@ -85,16 +87,18 @@ export function OverviewView() {
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>('');
 
-  const today = getArgentinaDay();
+  const searchParams = useSearchParams();
+  const range = resolveRangeFromParam(searchParams.get('range'));
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const qs = `range=${range.preset}`;
       const [fRes, rRes, lRes] = await Promise.all([
-        fetch(`/api/admin/funnel-data?day=${today}`, { cache: 'no-store', credentials: 'same-origin' }),
-        fetch('/api/admin/revenue-stats', { cache: 'no-store', credentials: 'same-origin' }),
-        fetch('/api/admin/leads-stats', { cache: 'no-store', credentials: 'same-origin' }),
+        fetch(`/api/admin/funnel-data?${qs}`, { cache: 'no-store', credentials: 'same-origin' }),
+        fetch(`/api/admin/revenue-stats?${qs}`, { cache: 'no-store', credentials: 'same-origin' }),
+        fetch(`/api/admin/leads-stats?${qs}`, { cache: 'no-store', credentials: 'same-origin' }),
       ]);
       if (fRes.status === 401 || rRes.status === 401 || lRes.status === 401) {
         window.location.href = '/admin';
@@ -110,7 +114,7 @@ export function OverviewView() {
     } finally {
       setLoading(false);
     }
-  }, [today]);
+  }, [range.preset]);
 
   useEffect(() => {
     fetchAll();
@@ -182,7 +186,7 @@ export function OverviewView() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-50">Resumen general</h1>
           <p className="mt-1 text-sm text-neutral-400">
-            Vista rápida del negocio · embudo de <span className="font-medium text-neutral-200">hoy</span> ({formatDayLabel(today)}, GMT-3).
+            Vista rápida del negocio · período: <span className="font-medium text-neutral-200">{range.label}</span> (GMT-3).
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -246,8 +250,8 @@ export function OverviewView() {
         <SectionCard
           className="lg:col-span-2"
           icon={<FunnelIcon size={18} weight="fill" />}
-          title={funnel && !funnel.dayTrackingActive ? 'Embudo (acumulado)' : 'Embudo de hoy'}
-          subtitle={funnel && !funnel.dayTrackingActive ? 'todos los días juntos' : `${formatDayLabel(today)} · GMT-3`}
+          title={funnel && !funnel.dayTrackingActive ? 'Embudo (acumulado)' : `Embudo · ${range.label}`}
+          subtitle={funnel && !funnel.dayTrackingActive ? 'todos los días juntos' : `${range.label} · GMT-3`}
           actions={
             <Link href="/admin/funnel">
               <Button variant="ghost">
@@ -266,7 +270,7 @@ export function OverviewView() {
           )}
         </SectionCard>
 
-        <SectionCard icon={<TrendUp size={18} weight="bold" />} title="Conversión de hoy">
+        <SectionCard icon={<TrendUp size={18} weight="bold" />} title={`Conversión · ${range.label}`}>
           <div className="space-y-4">
             <ConversionBar label="Quiz → Llegaron a venta" pct={quizToSale} accent="violet" />
             <ConversionBar label="Venta → Compraron" pct={saleToBuy} accent="emerald" />
@@ -354,7 +358,7 @@ export function OverviewView() {
       {/* Top campañas (atribución del embudo, hoy) */}
       <SectionCard
         icon={<TrendUp size={18} weight="bold" />}
-        title="Top campañas (hoy)"
+        title={`Top campañas · ${range.label}`}
         subtitle="atribución del embudo por campaña"
         bodyClassName="p-0"
         actions={

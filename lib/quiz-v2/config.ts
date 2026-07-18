@@ -7,8 +7,7 @@
  * checkout URL, banners estacionales, tipos de problema, textos de dolor,
  * y bonus por respuesta.
  *
- * Junto con data.ts (preguntas) y localization.ts (precios/textos por pais),
- * son los 3 archivos que definen el contenido del funnel. El resto es
+ * Junto con data.ts (preguntas), definen el contenido del funnel. El resto es
  * infraestructura reutilizable.
  */
 
@@ -28,6 +27,13 @@ export const PRODUCT_SHORT_NAME = 'Chau Hinchazón';
  * Fuente única: cambiá el nombre acá y se propaga al checkout del upsell y a /downsell.
  */
 export const UPSELL_PRODUCT_NAME = 'Programa de 30 Días TURBO';
+
+/**
+ * Nombre del producto del UPSELL 2: el Acceso VIP de por vida (pago único).
+ * Es el tercer escalón del embudo AR (después del front y del upsell de 30 días).
+ * Fuente única: cambiá el nombre acá y se propaga al checkout del upsell 2.
+ */
+export const UPSELL2_PRODUCT_NAME = 'Acceso VIP de por vida';
 
 /** Nombre de la profesional/experta que respalda el producto. */
 export const EXPERT_NAME = 'Natalia Reyes';
@@ -70,11 +76,33 @@ export const CHECKOUT_URL =
 
 export const PRICING_CURRENCY = 'ARS';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// REPORTE DE CONVERSIÓN A META (CAPI Purchase) — para ROAS real
+// La cuenta de Meta Ads gasta en EUR, pero Shopify cobra en ARS. Si a Meta le
+// reportáramos el total en ARS, el ROAS quedaría inconsistente con el gasto.
+// Por eso, en el evento `Purchase` (server-side, ver app/api/shopify-webhook)
+// reportamos un VALOR FIJO en EUR por compra. Así Meta calcula el ROAS contra
+// el gasto en EUR de forma comparable.
+//
+// OJO: esto es SOLO lo que ve Meta. El monto real cobrado (ARS) se sigue
+// guardando intacto en Supabase y en el funnel store de /admin (revenue real).
+//
+// Para cambiar el valor reportado: editá SOLO acá.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const META_PURCHASE_VALUE = 4.4;
+export const META_PURCHASE_CURRENCY = 'EUR';
+
 export const PRICING = {
   /** Producto principal (final del quiz). Plan 7 dias + app. */
-  front: { amount: 6000, display: '$6.000', displayOriginal: '$18.000' },
+  front: { amount: 7790, display: '$7.790', displayOriginal: '$18.000' },
   /** Upsell post-compra: Programa 30 dias completo (incluye recetario de postres). */
   upsell: { amount: 14900, display: '$14.900', displayOriginal: '$39.990' },
+  /**
+   * Upsell 2: Acceso VIP de por vida (pago unico). Es el tercer escalon,
+   * MAS caro que el upsell de 30 dias. Ancla $49.990.
+   */
+  upsell2: { amount: 19990, display: '$19.990', displayOriginal: '$49.990' },
   /** Downsell: mismo Programa 30 dias, solo bajada de precio si rechazan el upsell. */
   downsell: { amount: 9900, display: '$9.900' },
 } as const;
@@ -90,6 +118,17 @@ export const UPSELL_CHECKOUT_URL =
   '';
 
 /**
+ * URL del checkout del UPSELL 2 (Acceso VIP de por vida). Provider-neutral.
+ * Shopify: permalink de carrito del producto VIP → https://TIENDA/cart/{VARIANT_ID}:1
+ * Precedencia: NEXT_PUBLIC_UPSELL2_CHECKOUT_URL → vacío.
+ *
+ * Fallback a '' → el componente de oferta muestra un aviso de "config pendiente"
+ * en lugar de romper (mismo patrón que el resto del embudo).
+ */
+export const UPSELL2_CHECKOUT_URL =
+  process.env.NEXT_PUBLIC_UPSELL2_CHECKOUT_URL || '';
+
+/**
  * URL del checkout del DOWNSELL (mismo producto, precio menor). Provider-neutral.
  * Precedencia: NEXT_PUBLIC_DOWNSELL_CHECKOUT_URL → legacy HOTMART → vacío.
  */
@@ -101,6 +140,14 @@ export const DOWNSELL_CHECKOUT_URL =
 /** URL base de la PWA (a donde va el "no gracias" final). */
 export const PWA_BASE_URL =
   process.env.NEXT_PUBLIC_PWA_BASE_URL || 'https://chauhinchazon.hilvanapp.com/pwa/login';
+
+/**
+ * URL de registro de la PWA. Destino del "no gracias" en /upsell2: el usuario ya
+ * pagó el programa, así que lo mandamos directo a crear su cuenta (sin downsell).
+ * Nota: la ruta real de registro es /pwa/registro.
+ */
+export const REGISTER_URL =
+  process.env.NEXT_PUBLIC_REGISTER_URL || 'https://chauhinchazon.hilvanapp.com/pwa/registro';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BANNERS ESTACIONALES POR HEMISFERIO
@@ -145,12 +192,6 @@ export const QUIZ_RESULT_TYPE_NAMES: Record<number, string> = {
   3: 'Hinchazón Vespertina',
   4: 'Hinchazón Crónica',
 };
-
-/**
- * @deprecated Usar `QUIZ_RESULT_TYPE_NAMES`. Alias mantenido para no romper
- * imports existentes; apunta al mismo objeto.
- */
-export const TIPO_NOMBRES = QUIZ_RESULT_TYPE_NAMES;
 
 /**
  * Bullets del "espejo de dolor" por tipo.

@@ -1,0 +1,57 @@
+{
+  "pbtResults": {
+    "2.2 Property test — el código incorrecto nunca desbloquea": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394716883
+    },
+    "2.3 Property test — código correcto desbloquea y persiste (round-trip)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394719573
+    },
+    "2.4 Property test — la validación no toca red ni SQL": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394722250
+    },
+    "2.5 Property test — `isVipUnlocked` refleja exactamente el flag": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394724863
+    },
+    "2.6 Property test — idempotencia del desbloqueo": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394727725
+    },
+    "4.2 Property test — el CTA \"SÍ\" dispara InitiateCheckout en USD": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394730525
+    },
+    "4.3 Property test — el CTA registra el funnel como 'latam'": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394733621
+    },
+    "4.4 Unit test — \"No gracias\" redirige a `/downsell2-latam`": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394736239
+    },
+    "6.2 Property test — el CTA del downsell 2 dispara InitiateCheckout en USD": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394740371
+    },
+    "6.3 Property test — el CTA del downsell 2 registra el funnel como 'latam'": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394743146
+    },
+    "6.4 Unit test — \"No gracias\" del downsell 2 redirige a la PWA": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394745842
+    },
+    "8.2 Test de integración — compra VIP (upsell2 y downsell2) capturada como 'latam'": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394748665
+    },
+    "9. Property test — regla de precios downsell2 < upsell2": {
+      "status": "passed",
+      "lastRunTimestamp": 1782394753000
+    }
+  },
+  "executionHistory": {}
+}

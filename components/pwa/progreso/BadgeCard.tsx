@@ -13,26 +13,29 @@ export interface Badge {
 
 interface BadgeCardProps {
   badge: Badge;
-  index?: number;
+  /** Entrance delay in milliseconds (driven by computeStagger from the grid). */
+  delayMs?: number;
 }
 
-export default function BadgeCard({ badge, index = 0 }: BadgeCardProps) {
+export default function BadgeCard({ badge, delayMs = 0 }: BadgeCardProps) {
+  const delay = delayMs / 1000;
+
   return (
     <motion.div
       className={`relative rounded-2xl p-4 border text-center transition-all ${
         badge.unlocked
-          ? 'bg-white border-sage/20 shadow-sm'
-          : 'bg-cream-warm/50 border-sand/20 opacity-60'
+          ? 'bg-warm border-terracotta/20 shadow-sm'
+          : 'bg-warm-border/50 border-warm-border opacity-60'
       }`}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: badge.unlocked ? 1 : 0.6, scale: 1 }}
-      transition={{ duration: 0.35, delay: index * 0.05 }}
+      transition={{ duration: 0.35, delay }}
       whileHover={badge.unlocked ? { scale: 1.03 } : {}}
     >
       {/* Badge icon */}
       <div
         className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-2 ${
-          badge.unlocked ? 'bg-sage-soft' : 'bg-sand/20 grayscale'
+          badge.unlocked ? 'bg-terracotta-soft' : 'bg-warm-border grayscale'
         }`}
       >
         <span className="text-2xl">{badge.icon}</span>
@@ -40,7 +43,7 @@ export default function BadgeCard({ badge, index = 0 }: BadgeCardProps) {
 
       {/* Title */}
       <p
-        className={`text-xs font-semibold ${
+        className={`font-body text-xs font-semibold ${
           badge.unlocked ? 'text-charcoal' : 'text-charcoal/40'
         }`}
       >
@@ -48,19 +51,19 @@ export default function BadgeCard({ badge, index = 0 }: BadgeCardProps) {
       </p>
 
       {/* Description */}
-      <p className="text-[10px] text-charcoal/50 mt-0.5 leading-tight">
+      <p className="font-body text-[10px] text-charcoal/50 mt-0.5 leading-tight">
         {badge.description}
       </p>
 
       {/* Unlocked indicator */}
       {badge.unlocked && (
         <motion.div
-          className="absolute -top-1 -right-1 w-5 h-5 bg-sage rounded-full flex items-center justify-center shadow-sm"
+          className="absolute -top-1 -right-1 w-5 h-5 bg-terracotta rounded-full flex items-center justify-center shadow-sm"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ delay: 0.3 + index * 0.05, type: 'spring' }}
+          transition={{ delay: 0.3 + delay, type: 'spring' }}
         >
-          <span className="text-[10px] text-white">✓</span>
+          <span className="text-[10px] text-warm">✓</span>
         </motion.div>
       )}
 

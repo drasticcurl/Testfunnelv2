@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getBonusGuide } from '@/lib/pwa/bonus-guides';
+import GuideSources from '@/components/pwa/guias/GuideSources';
 
 const container = {
   hidden: { opacity: 0 },
@@ -99,6 +100,13 @@ export default function BonusGuidePage() {
           {guide.closingText}
         </p>
       </motion.div>
+
+      {/* Fuentes (si el bono las tiene) */}
+      {guide.sources && guide.sources.length > 0 && (
+        <motion.div variants={item}>
+          <GuideSources sources={guide.sources} />
+        </motion.div>
+      )}
     </motion.div>
   );
 }

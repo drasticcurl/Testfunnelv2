@@ -38,8 +38,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStore } from '@/lib/admin/store';
+import type { FunnelFilters } from '@/lib/admin/store';
 import { isAdminAuthenticated } from '@/lib/admin/auth';
 import { getArgentinaDay } from '@/lib/admin/day';
+import { resolveRangeFromParam } from '@/lib/admin/range';
 import { getSupabase } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -73,9 +75,26 @@ export async function GET(req: NextRequest) {
     let days: Array<{ day: string; events: number; starts: number }> = [];
     let dayBreakdown: Array<{ event_name: string; slide: number; count: number }> = [];
     if (supabase) {
-      const { data: rows, error } = await supabase
-        .from('funnel_counts')
-        .select('day, event_name, slide, count');
+      // Paginamos: Supabase devuelve máx. 1000 filas por request. Si la tabla
+      // supera las 1000 filas, un select plano descarta en silencio las más
+      // nuevas (los días recientes). Traemos todo en lotes.
+      const PAGE = 1000;
+      const rows: Array<Record<string, unknown>> = [];
+      let error: { message: string } | null = null;
+      for (let from = 0; ; from += PAGE) {
+        const res = await supabase
+          .from('funnel_counts')
+          .select('day, event_name, slide, count')
+          .order('id', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (res.error) {
+          error = res.error;
+          break;
+        }
+        const batch = (res.data ?? []) as Array<Record<string, unknown>>;
+        rows.push(...batch);
+        if (batch.length < PAGE) break;
+      }
       if (error) {
         note = `query error: ${error.message}`;
       } else {
@@ -124,7 +143,23 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const data = await getStore().getFunnel({ day });
+  // Filtro por versión del quiz: ?version=ar | latam. Cualquier otro valor o
+  // ausencia => undefined (vista Unificada = todas las filas).
+  const versionParam = url.searchParams.get('version');
+  const version: 'ar' | 'latam' | undefined =
+    versionParam === 'ar' || versionParam === 'latam' ? versionParam : undefined;
+
+  // Si vino `?range=` (hoy/ayer/esta_semana/este_mes/…), filtramos por ese
+  // rango (GMT-3). Si no, usamos el día puntual (`?day=` o hoy por defecto).
+  // El filtro de versión se combina con el de día/rango.
+  const rangeParam = url.searchParams.get('range');
+  const filters: FunnelFilters = rangeParam
+    ? (() => {
+        const r = resolveRangeFromParam(rangeParam);
+        return { from: r.fromDay, to: r.toDay, version };
+      })()
+    : { day, version };
+  const data = await getStore().getFunnel(filters);
 
   return NextResponse.json(
     { ok: true, data },
@@ -194,7 +229,7 @@ export async function POST(req: NextRequest) {
       await store.track('Purchase', {
         utms: Object.keys(utms).length > 0 ? utms : undefined,
         country,
-        quizVersion: 'v3',
+        quizVersion: 'ar',
       });
       added++;
     } catch (err) {

@@ -14,21 +14,39 @@
  *  - Sin experiments (eliminados para simplificar). Solo UTMs.
  */
 
-import { slidesV2 } from '@/lib/quiz-v2/data';
+import { slidesV3 } from '@/lib/quiz-v2/data';
+import { slidesV3Latam } from '@/lib/quiz-v2/data-latam';
 import { cleanUtmValue } from '@/lib/utm';
+import { parseAbEntryEvent, type EntryVariant } from '@/lib/quiz-v2/abEntry';
+import { parseFunnelVariantEvent, type FunnelVariant } from '@/lib/quiz-v2/funnelVariant';
 import { getArgentinaDay, DAY_SENTINEL } from './day';
 
 // ─── Tipos públicos ────────────────────────────────────────────────────────
 
+/** Etiqueta de versión que se ESCRIBE de ahora en más. */
+export type QuizVersion = 'ar' | 'latam';
+
+/** Etiquetas legacy que pueden existir en filas históricas (solo lectura). */
+export type LegacyQuizVersion = 'v1' | 'v2' | 'v3';
+
+/** Unión usada al LEER filas almacenadas. */
+export type StoredQuizVersion = QuizVersion | LegacyQuizVersion;
+
 export type FunnelFilters = {
-  /** Filter by quiz version: 'v1', 'v2', 'v3', or undefined (all). */
-  version?: 'v1' | 'v2' | 'v3';
+  /** Filtra por versión del quiz. `undefined` = unificado (todas las filas). */
+  version?: QuizVersion;
   /**
    * Día calendario en GMT-3 (`YYYY-MM-DD`) por el que filtrar.
    *  - `undefined` o `'all'` => acumulado de todos los días.
    *  - Un día concreto => solo eventos de ese día.
    */
   day?: string | 'all';
+  /**
+   * Rango por día (GMT-3 `YYYY-MM-DD`), inclusive ambos extremos.
+   * Si `from` y `to` están seteados, tienen prioridad sobre `day`.
+   */
+  from?: string;
+  to?: string;
 };
 
 export type FunnelSlideRow = {
@@ -67,6 +85,64 @@ export type CountryBreakdownRow = {
   cvr: number;
 };
 
+/**
+ * Fila del test A/B/C de la pantalla de ENTRADA del quiz (slide 0).
+ * Se calcula a partir de los eventos `ab_entry_<V>_landing|start|complete|checkout|purchase`.
+ */
+export type VariantBreakdownRow = {
+  /** 'A' (directo) | 'B' (hook actual) | 'C' (hook liviano). */
+  variant: EntryVariant;
+  /** Vieron la pantalla de entrada (denominador). */
+  landings: number;
+  /** Llegaron a la 1ª pregunta (iniciaron el quiz). */
+  starts: number;
+  /** Llegaron a la sales page (completaron el quiz). */
+  completes: number;
+  /** Clickearon "comprar" en la sales page. */
+  checkouts: number;
+  /** Compraron (atribuido server-side desde el webhook). */
+  purchases: number;
+  /** starts / landings * 100. */
+  startRate: number;
+  /** completes / landings * 100. */
+  completionRate: number;
+  /** completes / starts * 100 (de los que iniciaron, cuántos completaron). */
+  completionVsStart: number;
+  /** purchases / landings * 100 — % de venta de cada landing (la métrica clave). */
+  salesRate: number;
+  /** purchases / completes * 100 — de los que completaron, cuántos compraron. */
+  salesVsComplete: number;
+};
+
+/**
+ * Fila del test FULL-FUNNEL A/B (Argentina): control (A) vs rebrand (B).
+ * Se calcula a partir de los eventos `af_<V>_quiz_start|quiz_complete|salespage_view|checkout|purchase`.
+ */
+export type FunnelVariantBreakdownRow = {
+  /** 'A' (control) | 'B' (rebrandeado). */
+  variant: FunnelVariant;
+  /** Llegaron a la 1ª pregunta real (iniciaron el quiz). Denominador. */
+  quizStarts: number;
+  /** Llegaron al slide de la sales page (completaron el quiz). */
+  quizCompletes: number;
+  /** Vieron efectivamente la sales page. */
+  salesViews: number;
+  /** Clickearon el CTA de compra. */
+  checkouts: number;
+  /** Compras confirmadas (atribuidas server-side). */
+  purchases: number;
+  /** quizCompletes / quizStarts * 100. */
+  completionRate: number;
+  /** salesViews / quizCompletes * 100. */
+  salesViewRate: number;
+  /** checkouts / salesViews * 100. */
+  checkoutRate: number;
+  /** purchases / checkouts * 100. */
+  purchaseRate: number;
+  /** purchases / quizStarts * 100 — CONVERSIÓN TOTAL del funnel (KPI estrella). */
+  totalConversionRate: number;
+};
+
 export type FunnelData = {
   slides: FunnelSlideRow[];
   totalLandingViews: number;
@@ -83,6 +159,10 @@ export type FunnelData = {
   utmBreakdown: UTMBreakdownRow[];
   /** Breakdown por país — para saber de qué país llegan y compran */
   countryBreakdown: CountryBreakdownRow[];
+  /** Test A/B/C de la pantalla de entrada (slide 0). Vacío si no hay datos. */
+  variantBreakdown: VariantBreakdownRow[];
+  /** Test FULL-FUNNEL A vs B (Argentina). Vacío si no hay eventos `af_*`. */
+  funnelVariantBreakdown: FunnelVariantBreakdownRow[];
   /**
    * Día (GMT-3, `YYYY-MM-DD`) que representa esta data, o `null` si es el
    * acumulado de todos los días.
@@ -102,7 +182,8 @@ export type TrackProps = {
   slide?: number;
   questionId?: string;
   utms?: Record<string, string>;
-  quizVersion?: 'v1' | 'v2' | 'v3';
+  /** Escrituras nuevas: 'ar' | 'latam'. Acepta legacy por compat de callers. */
+  quizVersion?: QuizVersion | LegacyQuizVersion;
   country?: string;
 };
 
@@ -141,7 +222,7 @@ function makeKey(
   event: string,
   slide: number,
   utms?: Record<string, string>,
-  quizVersion?: 'v1' | 'v2' | 'v3',
+  quizVersion?: StoredQuizVersion,
   country?: string,
   day?: string,
 ): CounterKey {
@@ -151,7 +232,7 @@ function makeKey(
   const med = '(directo)';
   const camp = cleanUtmValue(utms?.utm_campaign) || '(directo)';
   const content = '(directo)';
-  const ver = quizVersion || 'v1';
+  const ver = quizVersion || 'ar';
   const ctry = country || '(desconocido)';
   const d = day || getArgentinaDay();
   return `${event}|${slide}|${src}|${med}|${camp}|${content}|${ver}|${ctry}|${d}`;
@@ -164,7 +245,7 @@ function parseKey(key: CounterKey): {
   utm_medium: string;
   utm_campaign: string;
   utm_content: string;
-  quiz_version: 'v1' | 'v2' | 'v3';
+  quiz_version: StoredQuizVersion;
   country: string;
   day: string;
 } {
@@ -176,7 +257,7 @@ function parseKey(key: CounterKey): {
     utm_medium,
     utm_campaign,
     utm_content,
-    quiz_version: (quiz_version as 'v1' | 'v2' | 'v3') || 'v1',
+    quiz_version: (quiz_version as StoredQuizVersion) || 'ar',
     country: country || '(desconocido)',
     day: day || DAY_SENTINEL,
   };
@@ -194,7 +275,12 @@ class MemoryStore implements FunnelStore {
         ? props.slide
         : -1;
 
-    const key = makeKey(event, slide, props.utms, props.quizVersion, props.country, getArgentinaDay());
+    // Normalizamos la versión recibida del caller: cualquier valor que no sea
+    // 'latam' (incluido el legacy 'v3'/'v1' y undefined) se guarda como 'ar'.
+    // Así los callers server-side legacy que mandan 'v3' quedan en Argentina.
+    const quizVersion: QuizVersion = props.quizVersion === 'latam' ? 'latam' : 'ar';
+
+    const key = makeKey(event, slide, props.utms, quizVersion, props.country, getArgentinaDay());
     g.counters.set(key, (g.counters.get(key) ?? 0) + 1);
   }
 
@@ -215,6 +301,114 @@ class MemoryStore implements FunnelStore {
 
 // ─── Helpers de cálculo ────────────────────────────────────────────────────
 
+/**
+ * Construye el breakdown del test A/B/C de entrada a partir de filas de
+ * contadores (cualquier backend). Solo mira los eventos `ab_entry_*`.
+ * Compartido por MemoryStore y SupabaseStore.
+ */
+export function buildVariantBreakdown(
+  rows: Array<{ event_name: string; count: number }>,
+): VariantBreakdownRow[] {
+  const acc: Record<EntryVariant, { landings: number; starts: number; completes: number; checkouts: number; purchases: number }> = {
+    A: { landings: 0, starts: 0, completes: 0, checkouts: 0, purchases: 0 },
+    B: { landings: 0, starts: 0, completes: 0, checkouts: 0, purchases: 0 },
+    C: { landings: 0, starts: 0, completes: 0, checkouts: 0, purchases: 0 },
+  };
+
+  let any = false;
+  for (const row of rows) {
+    const parsed = parseAbEntryEvent(row.event_name);
+    if (!parsed) continue;
+    any = true;
+    const bucket = acc[parsed.variant];
+    if (parsed.step === 'landing') bucket.landings += row.count;
+    else if (parsed.step === 'start') bucket.starts += row.count;
+    else if (parsed.step === 'complete') bucket.completes += row.count;
+    else if (parsed.step === 'checkout') bucket.checkouts += row.count;
+    else if (parsed.step === 'purchase') bucket.purchases += row.count;
+  }
+
+  if (!any) return [];
+
+  return (['A', 'B', 'C'] as EntryVariant[]).map((variant) => {
+    const { landings, starts, completes, checkouts, purchases } = acc[variant];
+    return {
+      variant,
+      landings,
+      starts,
+      completes,
+      checkouts,
+      purchases,
+      startRate: landings > 0 ? (starts / landings) * 100 : 0,
+      completionRate: landings > 0 ? (completes / landings) * 100 : 0,
+      completionVsStart: starts > 0 ? (completes / starts) * 100 : 0,
+      salesRate: landings > 0 ? (purchases / landings) * 100 : 0,
+      salesVsComplete: completes > 0 ? (purchases / completes) * 100 : 0,
+    };
+  });
+}
+
+/**
+ * Construye el breakdown del test FULL-FUNNEL A vs B (Argentina) a partir de
+ * filas de contadores (cualquier backend). Solo mira eventos `af_*`.
+ * Espejo de `buildVariantBreakdown`:
+ *  - parsea `af_*` con `parseFunnelVariantEvent`,
+ *  - acumula contadores por variante y paso,
+ *  - calcula tasas denominator-safe y acotadas a [0,100],
+ *  - devuelve `[]` si no hay ningún evento `af_*` (la sección del admin se oculta).
+ */
+export function buildFunnelVariantBreakdown(
+  rows: Array<{ event_name: string; count: number }>,
+): FunnelVariantBreakdownRow[] {
+  const acc: Record<
+    FunnelVariant,
+    { quizStarts: number; quizCompletes: number; salesViews: number; checkouts: number; purchases: number }
+  > = {
+    A: { quizStarts: 0, quizCompletes: 0, salesViews: 0, checkouts: 0, purchases: 0 },
+    B: { quizStarts: 0, quizCompletes: 0, salesViews: 0, checkouts: 0, purchases: 0 },
+  };
+
+  let any = false;
+  for (const row of rows) {
+    const parsed = parseFunnelVariantEvent(row.event_name);
+    if (!parsed) continue;
+    any = true;
+    const bucket = acc[parsed.variant];
+    if (parsed.step === 'quiz_start') bucket.quizStarts += row.count;
+    else if (parsed.step === 'quiz_complete') bucket.quizCompletes += row.count;
+    else if (parsed.step === 'salespage_view') bucket.salesViews += row.count;
+    else if (parsed.step === 'checkout') bucket.checkouts += row.count;
+    else if (parsed.step === 'purchase') bucket.purchases += row.count;
+  }
+
+  if (!any) return [];
+
+  // Tasa segura: 0 si el denominador es 0, acotada al rango inclusivo [0,100].
+  const safeRate = (num: number, den: number): number => {
+    if (den <= 0) return 0;
+    const r = (num / den) * 100;
+    if (!Number.isFinite(r)) return 0;
+    return Math.min(100, Math.max(0, r));
+  };
+
+  return (['A', 'B'] as FunnelVariant[]).map((variant) => {
+    const { quizStarts, quizCompletes, salesViews, checkouts, purchases } = acc[variant];
+    return {
+      variant,
+      quizStarts,
+      quizCompletes,
+      salesViews,
+      checkouts,
+      purchases,
+      completionRate: safeRate(quizCompletes, quizStarts),
+      salesViewRate: safeRate(salesViews, quizCompletes),
+      checkoutRate: safeRate(checkouts, salesViews),
+      purchaseRate: safeRate(purchases, checkouts),
+      totalConversionRate: safeRate(purchases, quizStarts),
+    };
+  });
+}
+
 type CounterRow = {
   event_name: string;
   slide: number;
@@ -222,11 +416,23 @@ type CounterRow = {
   utm_medium: string;
   utm_campaign: string;
   utm_content: string;
-  quiz_version: 'v1' | 'v2' | 'v3';
+  quiz_version: StoredQuizVersion;
   country: string;
   day: string;
   count: number;
 };
+
+/**
+ * Selecciona la lista de slides del embudo según la versión solicitada.
+ *  - 'latam'           → `slidesV3Latam` (quiz de LATAM).
+ *  - 'ar' y unificado  → `slidesV3` (quiz de Argentina, scaffold de referencia).
+ *
+ * Exportada para poder testearla de forma aislada y reutilizarla desde el
+ * SupabaseStore.
+ */
+export function selectSlides(version?: QuizVersion) {
+  return version === 'latam' ? slidesV3Latam : slidesV3;
+}
 
 function computeFunnel(
   rows: CounterRow[],
@@ -243,11 +449,21 @@ function computeFunnel(
     ? rows.filter((r) => r.quiz_version === filters.version)
     : rows;
 
-  // Filter by day unless 'all'/undefined.
-  const dayFilter = filters.day && filters.day !== 'all' ? filters.day : null;
-  const filteredRows = dayFilter
-    ? versionRows.filter((r) => (r.day || DAY_SENTINEL) === dayFilter)
-    : versionRows;
+  // Filter by day/range. Un rango (from+to) tiene prioridad sobre `day`.
+  const hasRange = Boolean(filters.from && filters.to);
+  const dayFilter = !hasRange && filters.day && filters.day !== 'all' ? filters.day : null;
+  const filteredRows = hasRange
+    ? versionRows.filter((r) => {
+        const d = r.day || DAY_SENTINEL;
+        return d >= (filters.from as string) && d <= (filters.to as string);
+      })
+    : dayFilter
+      ? versionRows.filter((r) => (r.day || DAY_SENTINEL) === dayFilter)
+      : versionRows;
+  // Día efectivo a reportar: un rango de un solo día se trata como ese día.
+  const effectiveDay = hasRange
+    ? (filters.from === filters.to ? (filters.from as string) : null)
+    : dayFilter;
   const perSlide: Record<number, number> = {};
   let landingViews = 0;
   let viewContent = 0;
@@ -316,8 +532,8 @@ function computeFunnel(
 
   const totalStarts = perSlide[0] ?? 0;
 
-  // Use quiz slides (single version now)
-  const activeSlides = slidesV2;
+  // Slides según la versión solicitada (AR/unificado → slidesV3, LATAM → latam).
+  const activeSlides = selectSlides(filters.version);
 
   const slidesRows: FunnelSlideRow[] = activeSlides.map((s, i) => {
     // Tracking now sends slide = currentStep (0-indexed). Direct mapping.
@@ -359,6 +575,9 @@ function computeFunnel(
     }))
     .sort((a, b) => b.starts - a.starts);
 
+  const variantBreakdown = buildVariantBreakdown(filteredRows);
+  const funnelVariantBreakdown = buildFunnelVariantBreakdown(filteredRows);
+
   return {
     slides: slidesRows,
     totalLandingViews: landingViews,
@@ -372,7 +591,9 @@ function computeFunnel(
     backend,
     utmBreakdown,
     countryBreakdown,
-    day: dayFilter,
+    variantBreakdown,
+    funnelVariantBreakdown,
+    day: effectiveDay,
     availableDays,
     dayTrackingActive: true,
   };

@@ -10,6 +10,26 @@ import {
   INTERACTIONS,
   MEDICAL_DISCLAIMER,
 } from '@/lib/pwa/supplement-guide';
+import GuideSources from '@/components/pwa/guias/GuideSources';
+
+const SUPLEMENTACION_SOURCES = [
+  {
+    label: 'PMC — Glutamina y protección de las tight junctions intestinales',
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4369670/',
+  },
+  {
+    label: 'PMC/NHANES — Ingesta de magnesio y estreñimiento crónico',
+    url: 'https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8645769',
+  },
+  {
+    label: 'PubMed (Shoba) — Piperina y biodisponibilidad de la curcumina',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/9619120/',
+  },
+  {
+    label: 'Frontiers in Microbiology — Probióticos en enfermedades gastrointestinales',
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC8381467/',
+  },
+];
 
 const container = {
   hidden: { opacity: 0 },
@@ -57,6 +77,14 @@ function SupplementAccordion({ supplement }: { supplement: (typeof SUPPLEMENTS)[
           <div>
             <p className="text-xs font-semibold text-sage uppercase tracking-wider mb-1">¿Para qué?</p>
             <p className="text-[13px] text-charcoal/70 leading-relaxed">{supplement.purpose}</p>
+          </div>
+
+          {/* Evidence */}
+          <div className="bg-cream-warm/70 rounded-xl p-3">
+            <p className="text-xs font-semibold text-charcoal/60 uppercase tracking-wider mb-1">
+              🔬 Qué dice la evidencia
+            </p>
+            <p className="text-[13px] text-charcoal/70 leading-relaxed">{supplement.evidence}</p>
           </div>
 
           {/* What to look for */}
@@ -241,6 +269,11 @@ export default function SuplementacionPage() {
           nutrientes que, junto con un plan de alimentación correcto, aceleran el proceso 
           de recuperación intestinal.&quot;
         </p>
+      </motion.div>
+
+      {/* Fuentes */}
+      <motion.div variants={item}>
+        <GuideSources sources={SUPLEMENTACION_SOURCES} />
       </motion.div>
     </motion.div>
   );

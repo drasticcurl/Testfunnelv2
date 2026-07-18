@@ -13,16 +13,20 @@
  *  1) Redirige / → /quiz (simple, sin A/B).
  *
  *  2) Guard de la PWA (`/pwa/<sub-rutas>`):
- *     - Si NO hay cookie `pwa_session` válida y NO está activo el test mode,
- *       redirige a /pwa/login.
+ *     - Usa la sesión de Supabase Auth (vía `updateSession`) para proteger las
+ *       rutas internas de la PWA. Si NO hay usuario autenticado y NO está activo
+ *       el test mode, redirige a /pwa/login (con ?next=<ruta original>).
+ *     - Si la sesión es válida, devuelve la respuesta de Supabase (con las
+ *       cookies de sesión refrescadas).
  *     - SOLO se aplica a rutas internas de la PWA (`/pwa/dashboard`, etc).
  *     - Excluye explícitamente:
  *         · cualquier path con extensión (.js, .json, .png, .ico, etc.)
- *         · /pwa/login y /pwa/auth/*
+ *         · las rutas públicas de auth: /pwa/login, /pwa/registro,
+ *           /pwa/recuperar, /pwa/reset (y sus sub-rutas).
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { SESSION_COOKIE, verifySessionEdge } from '@/lib/pwa/session-edge';
+import { updateSession } from '@/lib/pwa/supabase-middleware';
 
 
 /* ─── Geo-block ────────────────────────────────────────────────────── */
@@ -47,6 +51,14 @@ function isBlockedCountry(req: NextRequest): boolean {
 
 /* ─── PWA guard ────────────────────────────────────────────────────── */
 
+// Rutas públicas de la PWA (auth): NO requieren sesión de Supabase.
+const PUBLIC_PWA_PREFIXES = [
+  '/pwa/login',
+  '/pwa/registro',
+  '/pwa/recuperar',
+  '/pwa/reset',
+];
+
 function pathRequiresPwaSession(pathname: string): boolean {
   const lastSlash = pathname.lastIndexOf('/');
   const lastSegment = pathname.slice(lastSlash + 1);
@@ -54,8 +66,10 @@ function pathRequiresPwaSession(pathname: string): boolean {
 
   if (pathname !== '/pwa' && !pathname.startsWith('/pwa/')) return false;
 
-  if (pathname === '/pwa/login' || pathname.startsWith('/pwa/login/')) return false;
-  if (pathname.startsWith('/pwa/auth/')) return false;
+  // Rutas públicas de auth (y sus sub-rutas) no requieren sesión.
+  for (const prefix of PUBLIC_PWA_PREFIXES) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return false;
+  }
 
   return true;
 }
@@ -94,15 +108,19 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   }
 
   // ─── 3) PWA guard ───────────────────────────────────────────────
-  if (pathRequiresPwaSession(pathname) && !isTestModeEdge()) {
-    const token = req.cookies.get(SESSION_COOKIE)?.value;
-    const session = await verifySessionEdge(token);
-    if (!session) {
+  if (pathRequiresPwaSession(pathname)) {
+    if (isTestModeEdge()) {
+      return NextResponse.next();
+    }
+    const { supabaseResponse, user } = await updateSession(req);
+    if (!user) {
       const url = req.nextUrl.clone();
       url.pathname = '/pwa/login';
       url.searchParams.set('next', pathname);
       return NextResponse.redirect(url);
     }
+    // Sesión válida: devolver la respuesta de Supabase (cookies refrescadas).
+    return supabaseResponse;
   }
 
   return NextResponse.next();

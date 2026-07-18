@@ -30,10 +30,10 @@ export default function MomentFilter({ selected, onChange }: MomentFilterProps) 
         <button
           key={filter.value}
           onClick={() => onChange(filter.value)}
-          className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+          className={`flex-shrink-0 min-h-[44px] px-4 py-2 rounded-full font-body text-sm font-medium transition-colors duration-fast ease-standard ${
             selected === filter.value
-              ? 'bg-sage text-white shadow-sm'
-              : 'bg-sage-soft text-charcoal/70 hover:bg-sage/20'
+              ? 'bg-terracotta text-warm shadow-sm'
+              : 'bg-terracotta-soft text-muted hover:bg-terracotta/20'
           }`}
         >
           {filter.label}

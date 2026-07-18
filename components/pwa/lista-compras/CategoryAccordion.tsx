@@ -30,25 +30,25 @@ export default function CategoryAccordion({
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+    <div className="bg-warm rounded-lg overflow-hidden shadow-sm">
       {/* Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-cream-warm/50 transition-colors"
+        className="w-full min-h-[44px] flex items-center justify-between px-4 py-3 hover:bg-warm-border/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <span className="text-lg">{emoji}</span>
-          <span className="font-medium text-charcoal text-sm">{label}</span>
-          <span className="text-xs text-charcoal/40 ml-1">
+          <span className="font-body font-medium text-charcoal text-sm">{label}</span>
+          <span className="font-body text-xs text-charcoal/40 ml-1">
             {checkedCount}/{totalCount}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Mini progress bar */}
-          <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-12 h-1.5 bg-warm-border rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-sage rounded-full"
+              className="h-full bg-terracotta rounded-full"
               initial={false}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
@@ -75,7 +75,7 @@ export default function CategoryAccordion({
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3 border-t border-gray-100/50">
+            <div className="px-4 pb-3 border-t border-warm-border/50">
               {items.map((item) => (
                 <ShoppingItem
                   key={item.id}

@@ -16,6 +16,7 @@ import StreakCounter from '@/components/pwa/progreso/StreakCounter';
 import BadgeGrid from '@/components/pwa/progreso/BadgeGrid';
 import { type Badge } from '@/components/pwa/progreso/BadgeCard';
 import { getLogsFromStorage } from '@/lib/pwa/diary-helpers';
+import { LoadingState } from '@/components/pwa/ui/LoadingState';
 
 // ─── Test Mode Badges ────────────────────────────────────────────────────────
 
@@ -168,12 +169,13 @@ export default function ProgresoPage() {
   const progressPercent = Math.round((completedDays / totalDays) * 100);
 
   if (!isLoaded) {
+    // Loading_State styled with Design_System tokens, announced to assistive tech.
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-8 bg-sage-soft rounded w-1/2" />
-        <div className="h-40 bg-sage-soft rounded-2xl" />
-        <div className="h-32 bg-sage-soft rounded-2xl" />
-        <div className="h-60 bg-sage-soft rounded-2xl" />
+      <div className="space-y-4">
+        <LoadingState message="Cargando tu progreso…" rows={1} className="w-1/2" />
+        <LoadingState rows={1} className="h-40" />
+        <LoadingState rows={1} className="h-32" />
+        <LoadingState rows={3} />
       </div>
     );
   }
@@ -187,8 +189,8 @@ export default function ProgresoPage() {
     >
       {/* Header */}
       <div>
-        <h1 className="font-serif text-2xl font-semibold text-charcoal">Tu Progreso</h1>
-        <p className="text-sm text-charcoal/60 mt-1">
+        <h1 className="font-heading text-2xl font-semibold text-charcoal">Tu Progreso</h1>
+        <p className="font-body text-sm text-charcoal/60 mt-1">
           {completedDays > 0
             ? `¡Increíble! Llevás ${completedDays} días de transformación.`
             : 'Acá vas a ver tu evolución día a día.'}
@@ -197,7 +199,7 @@ export default function ProgresoPage() {
 
       {/* Progress Ring + stats */}
       <motion.div
-        className="bg-white rounded-2xl p-6 shadow-sm border border-sand/20"
+        className="bg-warm rounded-2xl p-6 shadow-sm border border-warm-border"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -206,12 +208,12 @@ export default function ProgresoPage() {
           <ProgressRing percent={progressPercent} label="completado" />
           <div className="space-y-3">
             <div>
-              <p className="font-serif text-2xl font-bold text-charcoal">{completedDays}</p>
-              <p className="text-xs text-charcoal/50">días completados</p>
+              <p className="font-heading text-2xl font-bold text-charcoal">{completedDays}</p>
+              <p className="font-body text-xs text-charcoal/50">días completados</p>
             </div>
             <div>
-              <p className="font-serif text-2xl font-bold text-sage">{totalDays - completedDays}</p>
-              <p className="text-xs text-charcoal/50">días restantes</p>
+              <p className="font-heading text-2xl font-bold text-terracotta">{totalDays - completedDays}</p>
+              <p className="font-body text-xs text-charcoal/50">días restantes</p>
             </div>
           </div>
         </div>
@@ -222,46 +224,46 @@ export default function ProgresoPage() {
 
       {/* Evolution Chart */}
       <motion.div
-        className="bg-white rounded-2xl p-5 shadow-sm border border-sand/20"
+        className="bg-warm rounded-2xl p-5 shadow-sm border border-warm-border"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15 }}
       >
-        <h2 className="font-serif text-lg font-semibold text-charcoal mb-1">
+        <h2 className="font-heading text-lg font-semibold text-charcoal mb-1">
           Evolución de tu digestión
         </h2>
-        <p className="text-xs text-charcoal/50 mb-4">Últimos 14 días — menor puntaje = mejor</p>
+        <p className="font-body text-xs text-charcoal/50 mb-4">Últimos 14 días — menor puntaje = mejor</p>
 
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8EFE9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--warm-border)" />
               <XAxis
                 dataKey="day"
-                tick={{ fontSize: 10, fill: '#9B9890' }}
+                tick={{ fontSize: 10, fill: 'var(--muted-light)' }}
                 tickLine={false}
-                axisLine={{ stroke: '#E8EFE9' }}
+                axisLine={{ stroke: 'var(--warm-border)' }}
               />
               <YAxis
                 domain={[0, 10]}
-                tick={{ fontSize: 10, fill: '#9B9890' }}
+                tick={{ fontSize: 10, fill: 'var(--muted-light)' }}
                 tickLine={false}
-                axisLine={{ stroke: '#E8EFE9' }}
+                axisLine={{ stroke: 'var(--warm-border)' }}
               />
               <Tooltip
                 contentStyle={{
-                  background: '#fff',
-                  border: '1px solid #E8EFE9',
+                  background: 'var(--warm)',
+                  border: '1px solid var(--warm-border)',
                   borderRadius: 12,
                   fontSize: 12,
                 }}
               />
-              <Line type="monotone" dataKey="am" stroke="#C0553A" strokeWidth={2} dot={{ r: 3, fill: '#C0553A' }} name="Mañana (hinchazón)" />
-              <Line type="monotone" dataKey="pm" stroke="#D4785C" strokeWidth={2} dot={{ r: 3, fill: '#D4785C' }} name="Noche (hinchazón)" />
+              <Line type="monotone" dataKey="am" stroke="var(--terracotta)" strokeWidth={2} dot={{ r: 3, fill: 'var(--terracotta)' }} name="Mañana (hinchazón)" />
+              <Line type="monotone" dataKey="pm" stroke="var(--terracotta-light)" strokeWidth={2} dot={{ r: 3, fill: 'var(--terracotta-light)' }} name="Noche (hinchazón)" />
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-40 flex items-center justify-center text-charcoal/40 text-sm">
+          <div className="h-40 flex items-center justify-center font-body text-charcoal/40 text-sm">
             Registrá tu primer día para ver tu evolución
           </div>
         )}
@@ -271,10 +273,10 @@ export default function ProgresoPage() {
             real lo reemplazamos por el delta real entre primeras vs últimas
             entradas del log. */}
         {chartData.length >= 7 && (
-          <div className="mt-3 flex items-center gap-2 bg-sage-soft/50 rounded-lg px-3 py-2">
+          <div className="mt-3 flex items-center gap-2 bg-terracotta-soft/50 rounded-lg px-3 py-2">
             <span className="text-sm">📉</span>
-            <p className="text-xs text-charcoal/70">
-              Tu hinchazón bajó un <strong className="text-sage">23%</strong> en las últimas 2 semanas. ¡Seguí así!
+            <p className="font-body text-xs text-charcoal/70">
+              Tu hinchazón bajó un <strong className="text-terracotta">23%</strong> en las últimas 2 semanas. ¡Seguí así!
             </p>
           </div>
         )}
@@ -285,16 +287,16 @@ export default function ProgresoPage() {
 
       {/* Motivational card */}
       <motion.div
-        className="bg-gradient-to-br from-sage/10 to-sage-soft rounded-2xl p-5 border border-sage/15 text-center"
+        className="bg-gradient-to-br from-terracotta/10 to-terracotta-soft rounded-2xl p-5 border border-terracotta/15 text-center"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
       >
         <span className="text-3xl">🌟</span>
-        <p className="font-serif text-base font-semibold text-charcoal mt-2">
+        <p className="font-heading text-base font-semibold text-charcoal mt-2">
           Cada día que registrás es un acto de amor propio
         </p>
-        <p className="text-xs text-charcoal/50 mt-1.5">
+        <p className="font-body text-xs text-charcoal/50 mt-1.5">
           Tu cuerpo se está adaptando. Los resultados llegan con la constancia.
         </p>
       </motion.div>

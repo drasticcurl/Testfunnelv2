@@ -47,6 +47,8 @@ import crypto from 'crypto';
 import { sendCapiEvent } from '@/lib/tracking';
 import { getStore } from '@/lib/admin/store';
 import { cleanUtmValue, inferUtmSource } from '@/lib/utm';
+import { META_PURCHASE_VALUE, META_PURCHASE_CURRENCY } from '@/lib/quiz-v2/config';
+import { funnelEventName, type FunnelVariant } from '@/lib/quiz-v2/funnelVariant';
 
 export const runtime = 'nodejs';
 
@@ -226,6 +228,75 @@ function orderUtms(order: ShopifyOrder): Record<string, string> | undefined {
 }
 
 /**
+ * Variante del test A/B/C de entrada (`ab_entry` = 'A' | 'B' | 'C') que viaja
+ * en el checkout como cart attribute (ver SlideSalesPageV3 / withCheckoutAttribution).
+ * Se lee de `note_attributes` (confiable) con fallback al query de `landing_site`.
+ * Devuelve null si no vino o no es válida (ej. compras de upsell, o tráfico
+ * previo al deploy del test).
+ */
+function orderEntryVariant(order: ShopifyOrder): 'A' | 'B' | 'C' | null {
+  const fromAttr = order.note_attributes?.find((a) => a?.name?.toLowerCase() === 'ab_entry')?.value;
+  let raw = typeof fromAttr === 'string' ? fromAttr : undefined;
+  if (!raw && order.landing_site) {
+    const qIndex = order.landing_site.indexOf('?');
+    if (qIndex !== -1) {
+      try {
+        raw = new URLSearchParams(order.landing_site.slice(qIndex + 1)).get('ab_entry') ?? undefined;
+      } catch {
+        /* noop */
+      }
+    }
+  }
+  const v = raw?.trim().toUpperCase();
+  return v === 'A' || v === 'B' || v === 'C' ? v : null;
+}
+
+/**
+ * Variante del test A/B de la SALES PAGE (`sp_variant` = 'A' | 'B') que viaja
+ * en el checkout como cart attribute. Misma lógica de lectura que `ab_entry`.
+ */
+function orderSalesVariant(order: ShopifyOrder): 'A' | 'B' | null {
+  const fromAttr = order.note_attributes?.find((a) => a?.name?.toLowerCase() === 'sp_variant')?.value;
+  let raw = typeof fromAttr === 'string' ? fromAttr : undefined;
+  if (!raw && order.landing_site) {
+    const qIndex = order.landing_site.indexOf('?');
+    if (qIndex !== -1) {
+      try {
+        raw = new URLSearchParams(order.landing_site.slice(qIndex + 1)).get('sp_variant') ?? undefined;
+      } catch {
+        /* noop */
+      }
+    }
+  }
+  const v = raw?.trim().toUpperCase();
+  return v === 'A' || v === 'B' ? v : null;
+}
+
+/**
+ * Variante del test FULL-FUNNEL AR (`funnel_variant` = 'A' | 'B') que viaja en
+ * el checkout como cart attribute (ver SlideSalesPageV3B / withCheckoutAttribution).
+ * Se lee de `note_attributes` (confiable) con fallback al query de `landing_site`,
+ * misma lógica que `orderEntryVariant` / `orderSalesVariant`. Devuelve null si no
+ * vino o no es válida (compras previas al test, o sin la variante en el carrito).
+ */
+function orderFunnelVariant(order: ShopifyOrder): FunnelVariant | null {
+  const fromAttr = order.note_attributes?.find((a) => a?.name?.toLowerCase() === 'funnel_variant')?.value;
+  let raw = typeof fromAttr === 'string' ? fromAttr : undefined;
+  if (!raw && order.landing_site) {
+    const qIndex = order.landing_site.indexOf('?');
+    if (qIndex !== -1) {
+      try {
+        raw = new URLSearchParams(order.landing_site.slice(qIndex + 1)).get('funnel_variant') ?? undefined;
+      } catch {
+        /* noop */
+      }
+    }
+  }
+  const v = raw?.trim().toUpperCase();
+  return v === 'A' || v === 'B' ? (v as FunnelVariant) : null;
+}
+
+/**
  * Atribución FINAL de la venta, ya normalizada y lista para guardar/contar:
  *  - `utm_source`: limpio (decodificado, sin espacios de más). Si no vino pero
  *    hay `fbclid`, se infiere "facebook" (el click vino de Meta).
@@ -385,6 +456,11 @@ async function handleApproved(order: ShopifyOrder): Promise<ApprovedResult> {
   // ─── 2. Meta CAPI (Shopify no manda fbc/fbp; matcheamos por email) ──
   // event_id determinístico (`shopify_<order.id>`): si llegan orders/create y
   // orders/paid para la misma orden, Meta deduplica y cuenta UNA sola compra.
+  //
+  // VALOR REPORTADO A META: fijo en EUR (META_PURCHASE_VALUE / _CURRENCY de
+  // config.ts), NO el total en ARS de la orden. La cuenta de ads gasta en EUR,
+  // así Meta calcula el ROAS de forma comparable contra el gasto. El monto real
+  // en ARS (`value`/`currency`) se guarda intacto en Supabase y el funnel store.
   const capiRes = await sendCapiEvent({
     event_name: 'Purchase',
     event_id: transactionId ?? undefined,
@@ -395,8 +471,8 @@ async function handleApproved(order: ShopifyOrder): Promise<ApprovedResult> {
       userAgent: order.client_details?.user_agent,
     },
     custom_data: {
-      value,
-      currency,
+      value: META_PURCHASE_VALUE,
+      currency: META_PURCHASE_CURRENCY,
       content_name: productNames || 'Protocolo Chau Hinchazón',
       content_ids: contentIds.length ? contentIds : undefined,
     },
@@ -411,12 +487,49 @@ async function handleApproved(order: ShopifyOrder): Promise<ApprovedResult> {
     try {
       const utms = attribution;
       const countryCode = order.billing_address?.country_code || order.shipping_address?.country_code;
+      const country = countryCode ? countryCode.toUpperCase() : undefined;
       await getStore().track('Purchase', {
         utms,
         quizVersion: 'v3',
-        country: countryCode ? countryCode.toUpperCase() : undefined,
+        country,
       });
       funnelStatus = `ok:${utms.utm_source ?? '(directo)'}`;
+
+      // Test A/B/C de entrada: atribuir la COMPRA a la variante (si vino en el
+      // checkout como cart attribute `ab_entry`). Best-effort, no rompe la venta.
+      const variant = orderEntryVariant(order);
+      if (variant) {
+        try {
+          await getStore().track(`ab_entry_${variant}_purchase`, { utms, quizVersion: 'v3', country });
+          console.log('[shopify] ab_entry purchase atribuida', { order_id: order.id, variant });
+        } catch (abErr) {
+          console.warn('[shopify] ab_entry purchase track failed:', abErr instanceof Error ? abErr.message : String(abErr));
+        }
+      }
+
+      // Test A/B de la sales page: atribuir la COMPRA a la variante (cart
+      // attribute `sp_variant`). Best-effort, no rompe la venta.
+      const salesVariant = orderSalesVariant(order);
+      if (salesVariant) {
+        try {
+          await getStore().track(`sp_${salesVariant}_purchase`, { utms, quizVersion: 'v3', country });
+          console.log('[shopify] sp purchase atribuida', { order_id: order.id, salesVariant });
+        } catch (spErr) {
+          console.warn('[shopify] sp purchase track failed:', spErr instanceof Error ? spErr.message : String(spErr));
+        }
+      }
+
+      // Test FULL-FUNNEL AR: atribuir la COMPRA de upsell/downsell a la variante
+      // (cart attribute `funnel_variant`). Best-effort, no rompe la venta.
+      const funnelVariant = orderFunnelVariant(order);
+      if (funnelVariant) {
+        try {
+          await getStore().track(funnelEventName(funnelVariant, 'purchase'), { utms, quizVersion: 'ar', country });
+          console.log('[shopify] af purchase atribuida', { order_id: order.id, funnelVariant });
+        } catch (afErr) {
+          console.warn('[shopify] af purchase track failed:', afErr instanceof Error ? afErr.message : String(afErr));
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[shopify] funnel store track failed:', msg);

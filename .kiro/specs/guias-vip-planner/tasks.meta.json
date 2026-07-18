@@ -1,0 +1,345 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Definir `VipSource` y extender `VipGuide` con `sources?`": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302467
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642312395
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642415709
+      }
+    ],
+    "2.1 Integrar `GuideSources` condicional en el renderer `[slug]`": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302475
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642434661
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642541872
+      }
+    ],
+    "3.1 Enriquecer las masterclasses": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302478
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642570067
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643261575
+      }
+    ],
+    "3.2 Enriquecer los protocolos": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302480
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642572045
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643262576
+      }
+    ],
+    "3.3 Enriquecer las mini-guías": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302483
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642573043
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643263596
+      }
+    ],
+    "4. Checkpoint — Guías VIP": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302485
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643283847
+      }
+    ],
+    "5.1 Añadir `STORAGE_KEYS.vipPlanner` en `lib/constants.ts`": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302488
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642573475
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643264224
+      }
+    ],
+    "6.1 Definir tipos y constantes": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302491
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643284264
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643402881
+      }
+    ],
+    "6.2 Implementar `createEmptyPlanner` y `setCell` (puros)": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302493
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643402951
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643406547
+      }
+    ],
+    "6.4 Implementar `loadPlannerFromStorage`, `savePlannerToStorage`, `clearPlanner` (server-safe)": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302496
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643406718
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643411231
+      }
+    ],
+    "7.1 Agregar dependencias `jspdf` y `jspdf-autotable`": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302499
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643423867
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643536799
+      }
+    ],
+    "7.2 Implementar `generateBlankPlannerPdf` (client-only)": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302501
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643537115
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643640318
+      }
+    ],
+    "8. Checkpoint — Núcleo del planner": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302503
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643640636
+      }
+    ],
+    "9.1 Convertir a componente `'use client'` con hidratación SSR-safe": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302506
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643645299
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643783756
+      }
+    ],
+    "9.2 Implementar el grid editable 8×7 con inputs controlados": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302508
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643646307
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643784748
+      }
+    ],
+    "9.3 Autoguardado con debounce 400ms": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302511
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643647319
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643785756
+      }
+    ],
+    "9.4 Botón de descarga de PDF en blanco": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302513
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643647864
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643786295
+      }
+    ],
+    "10. Checkpoint final — Ensure all tests pass": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642302516
+      },
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643789933
+      }
+    ],
+    "1. Ampliar el tipo de datos de guías de forma retrocompatible": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642415712
+      }
+    ],
+    "2. Renderizado condicional de fuentes en la guía VIP": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782642541881
+      }
+    ],
+    "3. Reescribir y enriquecer las 10 guías VIP": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643263609
+      }
+    ],
+    "5. Agregar la clave de storage centralizada": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643264227
+      }
+    ],
+    "6. Construir el núcleo puro del planner (`lib/pwa/planner-state.ts`)": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643411234
+      }
+    ],
+    "7. Generador de PDF en blanco (`lib/pwa/planner-pdf.ts`)": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643640322
+      }
+    ],
+    "9. Reescribir la página del planner editable (`app/pwa/vip/planner/page.tsx`)": [
+      {
+        "executionId": "57b6f86d-ec2d-46bb-92e9-2d8fdd5f2a40",
+        "chatSessionId": "73a209a8-293f-4fa1-b6ad-7c882fd893d3",
+        "timestamp": 1782643786298
+      }
+    ]
+  }
+}
